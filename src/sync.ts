@@ -107,10 +107,7 @@ async function executeSync(
   options: SyncOptions,
   onProgress?: SyncProgressCallback
 ): Promise<SyncReport> {
-  const publishedAfter = options.publishedAfter
-    ? new Date(`${options.publishedAfter}T00:00:00.000Z`)
-    : null;
-  const target = publishedAfter
+  const target = options.postedWithin !== undefined
     ? 0
     : Math.max(1, Math.floor(options.amount ?? 50));
 
@@ -120,31 +117,61 @@ async function executeSync(
     skipped: 0,
     pages: 0,
   };
+  let progressTotal = target;
+  let totalRecordsFound: number | null = null;
+  const processedJobIds = new Set<string>();
 
   onProgress?.({
     type: "sync_started",
     total: target,
-    ...(options.publishedAfter ? { publishedAfter: options.publishedAfter } : {}),
+    ...(options.postedWithin !== undefined
+      ? { postedWithin: options.postedWithin }
+      : {}),
   });
 
   const resume = await loadResume();
 
-  const pageCap = publishedAfter
+  const pageCap = options.postedWithin !== undefined
     ? config.maxPages
     : Math.min(config.maxPages, Math.max(1, Math.ceil(target / config.rpp) + 2));
 
   for (let page = 1; page <= pageCap; page += 1) {
-    if (!publishedAfter && report.fetched >= target) break;
+    if (options.postedWithin === undefined && report.fetched >= target) break;
 
-    const { premium, normal, totalPages } = await fetchBdjobsPage(page);
+    const {
+      premium,
+      normal,
+      totalPages,
+      totalRecordsFound: pageTotalRecordsFound,
+    } = await fetchBdjobsPage(page, options.postedWithin);
     report.pages += 1;
+    if (pageTotalRecordsFound !== null && totalRecordsFound === null) {
+      totalRecordsFound = pageTotalRecordsFound;
+    }
+    if (
+      options.postedWithin !== undefined &&
+      page === 1 &&
+      totalRecordsFound !== null
+    ) {
+      progressTotal = totalRecordsFound + premium.length;
+    }
+
+    if (options.postedWithin !== undefined) {
+      onProgress?.({
+        type: "sync_progress",
+        current: report.fetched,
+        total: progressTotal,
+        ...(totalRecordsFound !== null ? { total_records_found: totalRecordsFound } : {}),
+        newly_added: report.newly_added,
+        skipped: report.skipped,
+        pages: report.pages,
+      });
+    }
 
     if (premium.length === 0 && normal.length === 0) break;
     if (totalPages !== null && page > totalPages) break;
 
     let newOnPage = 0;
-    let allDatedJobsBeforeThreshold = true;
-    let pageHasDatedJobs = false;
 
     const streams: Array<{ list: BdjobsJob[]; source: JobSource }> = [
       { list: premium, source: "premium" },
@@ -153,21 +180,9 @@ async function executeSync(
 
     for (const { list, source } of streams) {
       for (const job of list) {
-        if (!publishedAfter && report.fetched >= target) break;
-
-        if (publishedAfter) {
-          const publishDate = job.publishDate ? new Date(job.publishDate) : null;
-          if (!publishDate || Number.isNaN(publishDate.getTime())) {
-            allDatedJobsBeforeThreshold = false;
-            continue;
-          }
-          pageHasDatedJobs = true;
-          if (publishDate >= publishedAfter) {
-            allDatedJobsBeforeThreshold = false;
-          } else {
-            continue;
-          }
-        }
+        if (processedJobIds.has(job.Jobid)) continue;
+        processedJobIds.add(job.Jobid);
+        if (options.postedWithin === undefined && report.fetched >= target) break;
 
         report.fetched += 1;
         const jobTitle = job.jobTitle || job.JobTitleBng || "Untitled";
@@ -244,19 +259,18 @@ async function executeSync(
         onProgress?.({
           type: "sync_progress",
           current: report.fetched,
-          total: target,
+          total: progressTotal,
+          ...(totalRecordsFound !== null ? { total_records_found: totalRecordsFound } : {}),
           newly_added: report.newly_added,
           skipped: report.skipped,
           pages: report.pages,
           jobTitle: job.jobTitle,
         });
       }
-      if (!publishedAfter && report.fetched >= target) break;
+      if (options.postedWithin === undefined && report.fetched >= target) break;
     }
 
-    if (publishedAfter) {
-      if (pageHasDatedJobs && allDatedJobsBeforeThreshold) break;
-    } else if (newOnPage === 0) {
+    if (options.postedWithin === undefined && newOnPage === 0) {
       break;
     }
   }
@@ -265,6 +279,11 @@ async function executeSync(
   onProgress?.({
     type: "sync_done",
     fetched: report.fetched,
+    total:
+      options.postedWithin !== undefined ? progressTotal : report.fetched,
+    ...(totalRecordsFound !== null
+      ? { total_records_found: totalRecordsFound }
+      : {}),
     newly_added: report.newly_added,
     skipped: report.skipped,
     pages: report.pages,

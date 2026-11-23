@@ -95,19 +95,20 @@ export interface SyncReport {
 
 export interface SyncOptions {
   amount?: number;
-  publishedAfter?: string;
+  postedWithin?: number;
 }
 
 export type SyncProgressEvent =
   | {
       type: "sync_started";
       total: number;
-      publishedAfter?: string;
+      postedWithin?: number;
     }
   | {
       type: "sync_progress";
       current: number;
       total: number;
+      total_records_found?: number;
       newly_added: number;
       skipped: number;
       pages: number;
@@ -144,6 +145,8 @@ export type SyncProgressEvent =
   | {
       type: "sync_done";
       fetched: number;
+      total: number;
+      total_records_found?: number;
       newly_added: number;
       skipped: number;
       pages: number;

@@ -12,10 +12,10 @@
           <input v-model.number="amount" type="number" min="1" placeholder="50" />
         </label>
         <label>
-          Published since
-          <input v-model="publishedAfter" type="date" />
+          Posted within (days)
+          <input v-model.number="postedWithin" type="number" min="1" placeholder="e.g. 2" />
         </label>
-        <button type="submit" :disabled="syncing || (!amount && !publishedAfter)">
+        <button type="submit" :disabled="syncing || (!amount && !postedWithin)">
           {{ syncing ? "Syncing…" : "Sync" }}
         </button>
       </form>
@@ -35,7 +35,7 @@
           {{ progressError ? "Sync failed" : progressDone ? "Sync done" : "Syncing" }}
         </strong>
         <span class="toast-count">
-          {{ progressTotal ? `${progressCurrent}/${progressTotal}` : `${progressCurrent} checked` }}
+          {{ progressTotal ? `${progressCurrent}/${progressTotal} checked` : `${progressCurrent} checked` }}
         </span>
       </div>
       <div class="toast-bar">
@@ -325,7 +325,7 @@ export default {
   data() {
     return {
       amount: 50,
-      publishedAfter: "",
+      postedWithin: "",
       syncing: false,
       syncReport: "",
       listMeta: "",
@@ -348,6 +348,7 @@ export default {
       progressError: false,
       progressCurrent: 0,
       progressTotal: 0,
+      activePostedWithin: null,
       progressHint: "",
       currentJob: null,
       filters: {
@@ -459,9 +460,10 @@ export default {
         this.progressError = false;
         this.progressCurrent = 0;
         this.progressTotal = msg.total || 0;
+        this.activePostedWithin = msg.postedWithin || null;
         this.currentJob = null;
-        this.progressHint = msg.publishedAfter
-          ? `Scanning jobs published since ${msg.publishedAfter}…`
+        this.progressHint = msg.postedWithin
+          ? `Scanning jobs posted within the last ${msg.postedWithin} days…`
           : "Starting…";
         this.syncReport = "";
         return;
@@ -478,7 +480,9 @@ export default {
         this.progressDone = false;
         this.progressError = false;
         this.progressCurrent = msg.current || 0;
-        this.progressTotal = msg.total || this.progressTotal;
+        this.progressTotal = this.activePostedWithin
+          ? msg.total || this.progressTotal
+          : msg.total || this.progressTotal;
         this.progressHint =
           `${msg.newly_added || 0} new · ${msg.skipped || 0} skipped` +
           (msg.jobTitle ? ` · ${msg.jobTitle}` : "");
@@ -491,7 +495,7 @@ export default {
         this.progressDone = true;
         this.progressError = false;
         this.progressCurrent = msg.fetched || this.progressCurrent;
-        this.progressTotal = msg.fetched || this.progressTotal;
+        this.progressTotal = msg.total || msg.fetched || this.progressTotal;
         this.progressHint = `Added ${msg.newly_added || 0} · Skipped ${msg.skipped || 0} · Pages ${msg.pages || 0}`;
         this.currentJob = null;
         this.syncReport = `Fetched ${msg.fetched} · Newly added ${msg.newly_added} · Skipped ${msg.skipped} · Pages ${msg.pages}`;
@@ -642,9 +646,9 @@ export default {
       this.progressDone = false;
       this.progressError = false;
       this.progressCurrent = 0;
-      this.progressTotal = this.publishedAfter ? 0 : amount;
-      this.progressHint = this.publishedAfter
-        ? `Scanning jobs published since ${this.publishedAfter}…`
+      this.progressTotal = this.postedWithin ? 0 : amount;
+      this.progressHint = this.postedWithin
+        ? `Scanning jobs posted within the last ${this.postedWithin} days…`
         : "Starting…";
       this.syncReport = "";
 
@@ -654,7 +658,7 @@ export default {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...(this.amount ? { amount } : {}),
-            ...(this.publishedAfter ? { publishedAfter: this.publishedAfter } : {}),
+            ...(this.postedWithin ? { postedWithin: Number(this.postedWithin) } : {}),
           }),
         });
         const data = await res.json();

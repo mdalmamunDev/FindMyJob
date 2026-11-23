@@ -5,6 +5,7 @@ export interface BdjobsPage {
   premium: BdjobsJob[];
   normal: BdjobsJob[];
   totalPages: number | null;
+  totalRecordsFound: number | null;
 }
 
 interface BdjobsApiResponse {
@@ -30,10 +31,17 @@ function normalizeJob(job: BdjobsJob): BdjobsJob | null {
   return { ...job, Jobid: id };
 }
 
-export async function fetchBdjobsPage(page: number): Promise<BdjobsPage> {
+export async function fetchBdjobsPage(
+  page: number,
+  postedWithin?: number
+): Promise<BdjobsPage> {
   const url = new URL(config.bdjobsUrl);
   url.searchParams.set("pg", String(page));
   url.searchParams.set("rpp", String(config.rpp));
+  url.searchParams.set(
+    "postedWithin",
+    postedWithin === undefined ? "" : String(postedWithin)
+  );
   url.searchParams.set("ToggleJobs", "true");
   url.searchParams.set("isFresher", "false");
 
@@ -66,11 +74,19 @@ export async function fetchBdjobsPage(page: number): Promise<BdjobsPage> {
     totalPagesRaw === undefined || totalPagesRaw === null
       ? null
       : Number(totalPagesRaw);
+  const totalRecordsRaw = json.common?.total_records_found;
+  const totalRecordsFound =
+    totalRecordsRaw === undefined || totalRecordsRaw === null
+      ? null
+      : Number(totalRecordsRaw);
 
   return {
     premium,
     normal,
     totalPages: Number.isFinite(totalPages) ? totalPages : null,
+    totalRecordsFound: Number.isFinite(totalRecordsFound)
+      ? totalRecordsFound
+      : null,
   };
 }
 

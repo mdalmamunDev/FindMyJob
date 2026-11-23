@@ -15,31 +15,30 @@ export const getSyncStatus: RequestHandler = async (_req, res) => {
 
 export const startSync: RequestHandler = (req, res) => {
   try {
-    const dateRaw = req.body?.publishedAfter;
-    let publishedAfter: string | undefined;
-
-    if (dateRaw !== undefined && dateRaw !== "") {
-      if (typeof dateRaw !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) {
-        res.status(400).json({ error: "publishedAfter must be a valid YYYY-MM-DD date" });
-        return;
-      }
-      const parsed = new Date(`${dateRaw}T00:00:00.000Z`);
-      if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== dateRaw) {
-        res.status(400).json({ error: "publishedAfter must be a valid YYYY-MM-DD date" });
-        return;
-      }
-      publishedAfter = dateRaw;
+    const postedWithinRaw = req.body?.postedWithin;
+    const postedWithin =
+      postedWithinRaw === undefined || postedWithinRaw === ""
+        ? undefined
+        : Number(postedWithinRaw);
+    if (
+      postedWithin !== undefined &&
+      (!Number.isInteger(postedWithin) || postedWithin < 1)
+    ) {
+      res.status(400).json({ error: "postedWithin must be a positive whole number of days" });
+      return;
     }
 
-    const amount = publishedAfter ? undefined : Number(req.body?.amount ?? 50);
-    if (!publishedAfter && (!Number.isFinite(amount) || amount! < 1)) {
+    const amount = postedWithin !== undefined
+      ? undefined
+      : Number(req.body?.amount ?? 50);
+    if (postedWithin === undefined && (!Number.isFinite(amount) || amount! < 1)) {
       res.status(400).json({ error: "amount must be a positive number" });
       return;
     }
 
     const target = amount === undefined ? undefined : Math.floor(amount);
     const started = startSyncBackground(
-      { amount: target, publishedAfter },
+      { amount: target, postedWithin },
       (event) => {
         broadcast(event);
       }
@@ -52,7 +51,7 @@ export const startSync: RequestHandler = (req, res) => {
 
     res.status(202).json({
       started: true,
-      ...(publishedAfter ? { publishedAfter } : { amount: target }),
+      ...(postedWithin !== undefined ? { postedWithin } : { amount: target }),
       message: "Sync started. Watch progress over WebSocket.",
     });
   } catch (err) {
