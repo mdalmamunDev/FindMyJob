@@ -14,7 +14,7 @@ async function main() {
   const app = express();
   app.use(
     cors({
-      origin: config.frontendOrigin,
+      origin: config.frontendOrigins,
       methods: ["GET", "POST", "PATCH", "OPTIONS"],
     })
   );
@@ -33,7 +33,7 @@ async function main() {
   server.listen(config.port, () => {
     console.log(`API running at http://localhost:${config.port}`);
     console.log(`WebSocket at ws://localhost:${config.port}/ws`);
-    console.log(`CORS origin: ${config.frontendOrigin}`);
+    console.log(`CORS origins: ${config.frontendOrigins.join(", ")}`);
   });
 
   const shutdown = async () => {
