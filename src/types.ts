@@ -94,7 +94,7 @@ export interface SyncReport {
 }
 
 export interface SyncOptions {
-  amount?: number;
+  categoryId?: number;
   postedWithin?: number;
 }
 
@@ -102,6 +102,7 @@ export type SyncProgressEvent =
   | {
       type: "sync_started";
       total: number;
+      categoryId?: number;
       postedWithin?: number;
     }
   | {

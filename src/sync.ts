@@ -107,71 +107,48 @@ async function executeSync(
   options: SyncOptions,
   onProgress?: SyncProgressCallback
 ): Promise<SyncReport> {
-  const target = options.postedWithin !== undefined
-    ? 0
-    : Math.max(1, Math.floor(options.amount ?? 50));
-
   const report: SyncReport = {
     fetched: 0,
     newly_added: 0,
     skipped: 0,
     pages: 0,
   };
-  let progressTotal = target;
+  let progressTotal = 0;
   let totalRecordsFound: number | null = null;
+  let premiumRecordsFound = 0;
   const processedJobIds = new Set<string>();
 
   onProgress?.({
     type: "sync_started",
-    total: target,
-    ...(options.postedWithin !== undefined
-      ? { postedWithin: options.postedWithin }
-      : {}),
+    total: 0,
+    ...(options.categoryId !== undefined ? { categoryId: options.categoryId } : {}),
+    ...(options.postedWithin !== undefined ? { postedWithin: options.postedWithin } : {}),
   });
 
   const resume = await loadResume();
 
-  const pageCap = options.postedWithin !== undefined
-    ? config.maxPages
-    : Math.min(config.maxPages, Math.max(1, Math.ceil(target / config.rpp) + 2));
+  const pageCap = config.maxPages;
 
   for (let page = 1; page <= pageCap; page += 1) {
-    if (options.postedWithin === undefined && report.fetched >= target) break;
-
     const {
       premium,
       normal,
       totalPages,
       totalRecordsFound: pageTotalRecordsFound,
-    } = await fetchBdjobsPage(page, options.postedWithin);
+    } = await fetchBdjobsPage(page, options.categoryId, options.postedWithin);
     report.pages += 1;
     if (pageTotalRecordsFound !== null && totalRecordsFound === null) {
       totalRecordsFound = pageTotalRecordsFound;
     }
-    if (
-      options.postedWithin !== undefined &&
-      page === 1 &&
-      totalRecordsFound !== null
-    ) {
-      progressTotal = totalRecordsFound + premium.length;
+    if (page === 1) {
+      premiumRecordsFound = premium.length;
     }
-
-    if (options.postedWithin !== undefined) {
-      onProgress?.({
-        type: "sync_progress",
-        current: report.fetched,
-        total: progressTotal,
-        ...(totalRecordsFound !== null ? { total_records_found: totalRecordsFound } : {}),
-        newly_added: report.newly_added,
-        skipped: report.skipped,
-        pages: report.pages,
-      });
+    if (totalRecordsFound !== null && progressTotal === 0) {
+      progressTotal = totalRecordsFound + premiumRecordsFound;
     }
 
     if (premium.length === 0 && normal.length === 0) break;
     if (totalPages !== null && page > totalPages) break;
-
-    let newOnPage = 0;
 
     const streams: Array<{ list: BdjobsJob[]; source: JobSource }> = [
       { list: premium, source: "premium" },
@@ -182,8 +159,6 @@ async function executeSync(
       for (const job of list) {
         if (processedJobIds.has(job.Jobid)) continue;
         processedJobIds.add(job.Jobid);
-        if (options.postedWithin === undefined && report.fetched >= target) break;
-
         report.fetched += 1;
         const jobTitle = job.jobTitle || job.JobTitleBng || "Untitled";
         const progressJob = {
@@ -196,7 +171,7 @@ async function executeSync(
           phase: "checking" as const,
         };
         onProgress?.(progressJob);
-        const result = await processJob(
+        await processJob(
           job,
           source,
           resume,
@@ -254,8 +229,6 @@ async function executeSync(
             });
           }
         );
-        if (result === "new") newOnPage += 1;
-
         onProgress?.({
           type: "sync_progress",
           current: report.fetched,
@@ -267,20 +240,16 @@ async function executeSync(
           jobTitle: job.jobTitle,
         });
       }
-      if (options.postedWithin === undefined && report.fetched >= target) break;
     }
 
-    if (options.postedWithin === undefined && newOnPage === 0) {
-      break;
-    }
+    if (totalPages !== null && page >= totalPages) break;
   }
 
   await recordSyncCompleted(new Date());
   onProgress?.({
     type: "sync_done",
     fetched: report.fetched,
-    total:
-      options.postedWithin !== undefined ? progressTotal : report.fetched,
+    total: progressTotal,
     ...(totalRecordsFound !== null
       ? { total_records_found: totalRecordsFound }
       : {}),

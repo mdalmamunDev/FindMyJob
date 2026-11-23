@@ -1,0 +1,542 @@
+[
+  {
+    "Cat_ID": 1,
+    "Cat_Name": "Accounting/Finance",
+    "CAT_NAME_Bangla": "একাউন্টিং / হিসাব রক্ষন / ফিনান্স",
+    "Total": 446,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 1,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 19,
+    "Cat_Name": "Production/Operation",
+    "CAT_NAME_Bangla": "উৎপাদন / অপারেশন",
+    "Total": 229,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 1,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 26,
+    "Cat_Name": "Agro (Plant/Animal/Fisheries)",
+    "CAT_NAME_Bangla": "কৃষি (চাষাবাদ/পশুপালন/মৎস্য)",
+    "Total": 67,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 1,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 2,
+    "Cat_Name": "Bank/Non-Bank Fin. Institution",
+    "CAT_NAME_Bangla": "ব্যাংক/ ব্যাংক-বহির্ভূত আর্থিক প্রতিষ্ঠান",
+    "Total": 87,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 2,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 20,
+    "Cat_Name": "Hospitality/ Travel/ Tourism",
+    "CAT_NAME_Bangla": "হসপিটালিটি/ ভ্রমণ/ পর্যটন",
+    "Total": 232,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 2,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 12,
+    "Cat_Name": "NGO/Development",
+    "CAT_NAME_Bangla": "এনজিও/ উন্নয়ন কর্মী",
+    "Total": 220,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 2,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 3,
+    "Cat_Name": "Supply Chain/Procurement",
+    "CAT_NAME_Bangla": "সাপ্লাই চেইন/প্রকিউরমেন্ট",
+    "Total": 202,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 3,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 27,
+    "Cat_Name": "Commercial",
+    "CAT_NAME_Bangla": "কমার্শিয়াল",
+    "Total": 91,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 3,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 13,
+    "Cat_Name": "Research/Consultancy",
+    "CAT_NAME_Bangla": "গবেষণা/ কনসালটেন্সি",
+    "Total": 28,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 3,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 4,
+    "Cat_Name": "Education/Training",
+    "CAT_NAME_Bangla": "শিক্ষা/ প্রশিক্ষণ",
+    "Total": 364,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 4,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 8,
+    "Cat_Name": "IT/Telecommunication",
+    "CAT_NAME_Bangla": "সফ্টওয়্যার / আইটি / টেলিযোগাযোগ",
+    "Total": 326,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 4,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 14,
+    "Cat_Name": "Receptionist/ PS",
+    "CAT_NAME_Bangla": "রিসেপশনিস্ট/পিএস",
+    "Total": 94,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 4,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 5,
+    "Cat_Name": "Engineer/Architect",
+    "CAT_NAME_Bangla": "প্রকৌশল / স্থাপত্য",
+    "Total": 531,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 5,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 9,
+    "Cat_Name": "Marketing/Sales",
+    "CAT_NAME_Bangla": "বিপণন/ বিক্রয়",
+    "Total": 1359,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 5,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 15,
+    "Cat_Name": "Data Entry/Operator/BPO",
+    "CAT_NAME_Bangla": "ডাটা এন্ট্রি/ অপারেটর/ বিপিও",
+    "Total": 53,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 5,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 6,
+    "Cat_Name": "Garments/Textile",
+    "CAT_NAME_Bangla": "গার্মেন্টস/ টেক্সটাইল",
+    "Total": 605,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 6,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 16,
+    "Cat_Name": "Customer Service/Call Centre",
+    "CAT_NAME_Bangla": "গ্রাহক সেবা/ কল সেন্টার",
+    "Total": 222,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 6,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 18,
+    "Cat_Name": "Design/Creative",
+    "CAT_NAME_Bangla": "ডিজাইন/ ক্রিয়েটিভ",
+    "Total": 129,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 6,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 17,
+    "Cat_Name": "HR/Org. Development",
+    "CAT_NAME_Bangla": "মানব সম্পদ ব্যবস্থাপনা ও উন্নয়ন",
+    "Total": 189,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 7,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 10,
+    "Cat_Name": "Media/Advertisement/Event Mgt.",
+    "CAT_NAME_Bangla": "মিডিয়া / এজেন্সি / ইভেন্ট",
+    "Total": 98,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 7,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 24,
+    "Cat_Name": "Security/Support Service",
+    "CAT_NAME_Bangla": "নিরাপত্তা/  সহায়তা পরিষেবা",
+    "Total": 37,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 7,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 7,
+    "Cat_Name": "General Management/Admin",
+    "CAT_NAME_Bangla": "জেনারেল ম্যানেজমেন্ট/ এডমিন",
+    "Total": 160,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 8,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 29,
+    "Cat_Name": "Pharmaceutical ",
+    "CAT_NAME_Bangla": "ফার্মাসিউটিক্যাল",
+    "Total": 101,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 8,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 22,
+    "Cat_Name": "Law/Legal",
+    "CAT_NAME_Bangla": "আইন পেশা",
+    "Total": 58,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 8,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 11,
+    "Cat_Name": "Healthcare/Medical",
+    "CAT_NAME_Bangla": "স্বাস্থ্যসেবা/চিকিৎসা",
+    "Total": 312,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 9,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 30,
+    "Cat_Name": "E-commerce/ Digital Marketing",
+    "CAT_NAME_Bangla": "ই-কমার্স/ ডিজিটাল মার্কেটিং",
+    "Total": 163,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 9,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 28,
+    "Cat_Name": "Company Secretary/Regulatory affairs",
+    "CAT_NAME_Bangla": "কোম্পানি সেক্রেটারি/রেগুলেটরি অ্যাফেয়ার্স",
+    "Total": 9,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 9,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 61,
+    "Cat_Name": "Data Entry/Computer Operator",
+    "CAT_NAME_Bangla": "ডাটা এন্ট্রি/ কম্পিউটার অপারেটর",
+    "Total": 22,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 10,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 66,
+    "Cat_Name": "Electrician/Electronics Technician",
+    "CAT_NAME_Bangla": "ইলেকট্রিশিয়ান/ইলেকট্রনিকস্ টেকনিশিয়ান",
+    "Total": 22,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 10,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 65,
+    "Cat_Name": "Pathologist/ Lab Assistant",
+    "CAT_NAME_Bangla": "প্যাথলজিষ্ট/ল্যাব সহকারী",
+    "Total": 27,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 10,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 62,
+    "Cat_Name": "Mechanic/Technician",
+    "CAT_NAME_Bangla": "মেকানিক/ টেকনিশিয়ান",
+    "Total": 63,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 11,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 67,
+    "Cat_Name": "Driver",
+    "CAT_NAME_Bangla": "ড্রাইভার",
+    "Total": 34,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 11,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 70,
+    "Cat_Name": "Security Guard",
+    "CAT_NAME_Bangla": "সিকিউরিটি গার্ড",
+    "Total": 27,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 11,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 63,
+    "Cat_Name": "Nurse",
+    "CAT_NAME_Bangla": "নার্স",
+    "Total": 40,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 12,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 68,
+    "Cat_Name": "Chef/Cook",
+    "CAT_NAME_Bangla": "শেফ/বাবুর্চী",
+    "Total": 42,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 12,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 64,
+    "Cat_Name": "Waiter/Waitress",
+    "CAT_NAME_Bangla": "ওয়েটার / ওয়েট্রেস",
+    "Total": 13,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 12,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 77,
+    "Cat_Name": "Delivery Man",
+    "CAT_NAME_Bangla": "ডেলিভারী ম্যান\r\n",
+    "Total": 13,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 13,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 79,
+    "Cat_Name": "Peon",
+    "CAT_NAME_Bangla": "পিয়ন",
+    "Total": 27,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 13,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 83,
+    "Cat_Name": "Showroom Assistant/Salesman",
+    "CAT_NAME_Bangla": "শো-রুম সহকারি/সেলসম্যান",
+    "Total": 47,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 13,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 71,
+    "Cat_Name": "Graphic Designer",
+    "CAT_NAME_Bangla": "গ্রাফিক ডিজাইনার",
+    "Total": 76,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 14,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 84,
+    "Cat_Name": "Sales Representative (SR)",
+    "CAT_NAME_Bangla": "সেলস রিপ্রেজেন্টেটিভ/ বিক্রয় প্রতিনিধি",
+    "Total": 42,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 14,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 78,
+    "Cat_Name": "Garments technician/Machine operator",
+    "CAT_NAME_Bangla": "গার্মেন্টস টেকনিশিয়ান / মেশিন অপারেটর",
+    "Total": 7,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 14,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 76,
+    "Cat_Name": "CAD Operator",
+    "CAT_NAME_Bangla": "CAD অপারেটর",
+    "Total": 8,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 15,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 91,
+    "Cat_Name": "Caregiver/Nanny",
+    "CAT_NAME_Bangla": "কেয়ারগিভার/ন্যানী",
+    "Total": 12,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 15,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 72,
+    "Cat_Name": "Welder",
+    "CAT_NAME_Bangla": "ওয়েল্ডার",
+    "Total": 4,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 15,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 73,
+    "Cat_Name": "Plumber/Pipe fitting",
+    "CAT_NAME_Bangla": "প্লাম্বার/পাইপফিটিং",
+    "Total": 0,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 16,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 69,
+    "Cat_Name": "Housekeeper",
+    "CAT_NAME_Bangla": "হাউজকিপার",
+    "Total": 7,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 16,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 80,
+    "Cat_Name": "Cleaner",
+    "CAT_NAME_Bangla": "ক্লিনার",
+    "Total": 10,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 16,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 75,
+    "Cat_Name": "Mason/ Construction worker",
+    "CAT_NAME_Bangla": "রাজমিস্ত্রি/ নির্মান কর্মী",
+    "Total": 0,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 17,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 74,
+    "Cat_Name": "Sewing machine operator",
+    "CAT_NAME_Bangla": "স্যুইং মেশিন অপারেটর",
+    "Total": 1,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 17,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 88,
+    "Cat_Name": "Beautician/ Salon worker",
+    "CAT_NAME_Bangla": "বিউটিশিয়ান / সেলুন কর্মী",
+    "Total": 7,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 17,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 81,
+    "Cat_Name": "Gardener",
+    "CAT_NAME_Bangla": "মালী",
+    "Total": 1,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 18,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 86,
+    "Cat_Name": "Gym/ Fitness Trainer",
+    "CAT_NAME_Bangla": "জিম/ ফিটনেস ট্রেইনার",
+    "Total": 2,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 18,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 89,
+    "Cat_Name": "Fire Safety/ Firefighter",
+    "CAT_NAME_Bangla": "ফায়ার সেফটি/ ফায়ারফাইটার",
+    "Total": 6,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 18,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 85,
+    "Cat_Name": "Imam/ Khatib/ Muezzin",
+    "CAT_NAME_Bangla": "ইমাম/ খতিব/ মুয়াজ্জিন",
+    "Total": 5,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 19,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 87,
+    "Cat_Name": "Interpreter",
+    "CAT_NAME_Bangla": "ইন্টারপ্রিটার/ দোভাষী",
+    "Total": 15,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 19,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": 92,
+    "Cat_Name": "Physiotherapist",
+    "CAT_NAME_Bangla": "ফিজিওথেরাপিস্ট",
+    "Total": 10,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 19,
+    "HomeColumnNo": 3
+  },
+  {
+    "Cat_ID": 90,
+    "Cat_Name": "Boiler Operator",
+    "CAT_NAME_Bangla": "বয়লার অপারেটর",
+    "Total": 7,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 20,
+    "HomeColumnNo": 1
+  },
+  {
+    "Cat_ID": 82,
+    "Cat_Name": "Carpenter",
+    "CAT_NAME_Bangla": "কার্পেন্টার",
+    "Total": 1,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 20,
+    "HomeColumnNo": 2
+  },
+  {
+    "Cat_ID": -10,
+    "Cat_Name": "Others",
+    "CAT_NAME_Bangla": "অন্যান্য",
+    "Total": 11,
+    "AllCategoryTotal": 6042,
+    "HomeSLNo": 100,
+    "HomeColumnNo": 3
+  }
+]

@@ -33,11 +33,13 @@ function normalizeJob(job: BdjobsJob): BdjobsJob | null {
 
 export async function fetchBdjobsPage(
   page: number,
+  categoryId?: number,
   postedWithin?: number
 ): Promise<BdjobsPage> {
   const url = new URL(config.bdjobsUrl);
   url.searchParams.set("pg", String(page));
   url.searchParams.set("rpp", String(config.rpp));
+  url.searchParams.set("Icat", categoryId === undefined ? "" : String(categoryId));
   url.searchParams.set(
     "postedWithin",
     postedWithin === undefined ? "" : String(postedWithin)

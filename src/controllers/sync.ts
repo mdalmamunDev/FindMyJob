@@ -15,6 +15,19 @@ export const getSyncStatus: RequestHandler = async (_req, res) => {
 
 export const startSync: RequestHandler = (req, res) => {
   try {
+    const categoryIdRaw = req.body?.categoryId;
+    const categoryId =
+      categoryIdRaw === undefined || categoryIdRaw === ""
+        ? undefined
+        : Number(categoryIdRaw);
+    if (
+      categoryId !== undefined &&
+      (!Number.isInteger(categoryId) || categoryId === 0)
+    ) {
+      res.status(400).json({ error: "categoryId must be a non-zero whole number" });
+      return;
+    }
+
     const postedWithinRaw = req.body?.postedWithin;
     const postedWithin =
       postedWithinRaw === undefined || postedWithinRaw === ""
@@ -28,17 +41,13 @@ export const startSync: RequestHandler = (req, res) => {
       return;
     }
 
-    const amount = postedWithin !== undefined
-      ? undefined
-      : Number(req.body?.amount ?? 50);
-    if (postedWithin === undefined && (!Number.isFinite(amount) || amount! < 1)) {
-      res.status(400).json({ error: "amount must be a positive number" });
+    if (categoryId === undefined && postedWithin === undefined) {
+      res.status(400).json({ error: "categoryId or postedWithin is required" });
       return;
     }
 
-    const target = amount === undefined ? undefined : Math.floor(amount);
     const started = startSyncBackground(
-      { amount: target, postedWithin },
+      { categoryId, postedWithin },
       (event) => {
         broadcast(event);
       }
@@ -51,7 +60,8 @@ export const startSync: RequestHandler = (req, res) => {
 
     res.status(202).json({
       started: true,
-      ...(postedWithin !== undefined ? { postedWithin } : { amount: target }),
+      ...(categoryId !== undefined ? { categoryId } : {}),
+      ...(postedWithin !== undefined ? { postedWithin } : {}),
       message: "Sync started. Watch progress over WebSocket.",
     });
   } catch (err) {

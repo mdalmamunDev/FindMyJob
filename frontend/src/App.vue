@@ -8,14 +8,23 @@
 
       <form class="sync-form" @submit.prevent="runSync">
         <label>
-          Amount
-          <input v-model.number="amount" type="number" min="1" placeholder="50" />
+          Category ID
+          <select v-model="categoryId">
+            <option value="">Select category</option>
+            <option
+              v-for="category in categories"
+              :key="category.id"
+              :value="String(category.id)"
+            >
+              {{ category.name }} — {{ category.nameBn }}
+            </option>
+          </select>
         </label>
         <label>
           Posted within (days)
           <input v-model.number="postedWithin" type="number" min="1" placeholder="e.g. 2" />
         </label>
-        <button type="submit" :disabled="syncing || (!amount && !postedWithin)">
+        <button type="submit" :disabled="syncing || (!categoryId && !postedWithin)">
           {{ syncing ? "Syncing…" : "Sync" }}
         </button>
       </form>
@@ -311,6 +320,8 @@
 </template>
 
 <script>
+import { jobCategories } from "./categories.js";
+
 const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
 function stripHtml(value) {
@@ -324,7 +335,8 @@ export default {
   name: "App",
   data() {
     return {
-      amount: 50,
+      categories: jobCategories,
+      categoryId: "",
       postedWithin: "",
       syncing: false,
       syncReport: "",
@@ -348,7 +360,6 @@ export default {
       progressError: false,
       progressCurrent: 0,
       progressTotal: 0,
-      activePostedWithin: null,
       progressHint: "",
       currentJob: null,
       filters: {
@@ -460,11 +471,11 @@ export default {
         this.progressError = false;
         this.progressCurrent = 0;
         this.progressTotal = msg.total || 0;
-        this.activePostedWithin = msg.postedWithin || null;
         this.currentJob = null;
-        this.progressHint = msg.postedWithin
-          ? `Scanning jobs posted within the last ${msg.postedWithin} days…`
-          : "Starting…";
+        this.progressHint = [
+          msg.categoryId ? `Category ${msg.categoryId}` : "",
+          msg.postedWithin ? `posted within ${msg.postedWithin} days` : "",
+        ].filter(Boolean).join(" · ") || "Starting…";
         this.syncReport = "";
         return;
       }
@@ -480,9 +491,7 @@ export default {
         this.progressDone = false;
         this.progressError = false;
         this.progressCurrent = msg.current || 0;
-        this.progressTotal = this.activePostedWithin
-          ? msg.total || this.progressTotal
-          : msg.total || this.progressTotal;
+        this.progressTotal = msg.total || this.progressTotal;
         this.progressHint =
           `${msg.newly_added || 0} new · ${msg.skipped || 0} skipped` +
           (msg.jobTitle ? ` · ${msg.jobTitle}` : "");
@@ -639,17 +648,16 @@ export default {
     },
 
     async runSync() {
-      const amount = Number(this.amount);
-
       this.syncing = true;
       this.progressVisible = true;
       this.progressDone = false;
       this.progressError = false;
       this.progressCurrent = 0;
-      this.progressTotal = this.postedWithin ? 0 : amount;
-      this.progressHint = this.postedWithin
-        ? `Scanning jobs posted within the last ${this.postedWithin} days…`
-        : "Starting…";
+      this.progressTotal = 0;
+      this.progressHint = [
+        this.categoryId ? `Category ${this.categoryId}` : "",
+        this.postedWithin ? `posted within ${this.postedWithin} days` : "",
+      ].filter(Boolean).join(" · ") || "Starting…";
       this.syncReport = "";
 
       try {
@@ -657,7 +665,7 @@ export default {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            ...(this.amount ? { amount } : {}),
+            ...(this.categoryId !== "" ? { categoryId: Number(this.categoryId) } : {}),
             ...(this.postedWithin ? { postedWithin: Number(this.postedWithin) } : {}),
           }),
         });
