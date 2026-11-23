@@ -30,19 +30,13 @@ export const startSync: RequestHandler = (req, res) => {
 
     const postedWithinRaw = req.body?.postedWithin;
     const postedWithin =
-      postedWithinRaw === undefined || postedWithinRaw === ""
-        ? undefined
+      postedWithinRaw === undefined ||
+      postedWithinRaw === null ||
+      postedWithinRaw === ""
+        ? 1
         : Number(postedWithinRaw);
-    if (
-      postedWithin !== undefined &&
-      (!Number.isInteger(postedWithin) || postedWithin < 1)
-    ) {
+    if (!Number.isInteger(postedWithin) || postedWithin < 1) {
       res.status(400).json({ error: "postedWithin must be a positive whole number of days" });
-      return;
-    }
-
-    if (categoryId === undefined && postedWithin === undefined) {
-      res.status(400).json({ error: "categoryId or postedWithin is required" });
       return;
     }
 
@@ -61,7 +55,7 @@ export const startSync: RequestHandler = (req, res) => {
     res.status(202).json({
       started: true,
       ...(categoryId !== undefined ? { categoryId } : {}),
-      ...(postedWithin !== undefined ? { postedWithin } : {}),
+      postedWithin,
       message: "Sync started. Watch progress over WebSocket.",
     });
   } catch (err) {

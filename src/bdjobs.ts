@@ -39,7 +39,7 @@ export async function fetchBdjobsPage(
   const url = new URL(config.bdjobsUrl);
   url.searchParams.set("pg", String(page));
   url.searchParams.set("rpp", String(config.rpp));
-  url.searchParams.set("Icat", categoryId === undefined ? "" : String(categoryId));
+  url.searchParams.set("category", categoryId === undefined ? "" : String(categoryId));
   url.searchParams.set(
     "postedWithin",
     postedWithin === undefined ? "" : String(postedWithin)

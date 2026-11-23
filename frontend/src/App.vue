@@ -8,7 +8,7 @@
 
       <form class="sync-form" @submit.prevent="runSync">
         <label>
-          Category ID
+          Category
           <select v-model="categoryId">
             <option value="">Select category</option>
             <option
@@ -22,9 +22,15 @@
         </label>
         <label>
           Posted within (days)
-          <input v-model.number="postedWithin" type="number" min="1" placeholder="e.g. 2" />
+          <input
+            v-model.number="postedWithin"
+            type="number"
+            min="1"
+            step="1"
+            required
+          />
         </label>
-        <button type="submit" :disabled="syncing || (!categoryId && !postedWithin)">
+        <button type="submit" :disabled="syncing">
           {{ syncing ? "Syncing…" : "Sync" }}
         </button>
       </form>
@@ -119,8 +125,17 @@
         <input v-model.number="filters.max_match" type="number" min="0" max="100" />
       </label>
       <label>
-        Category id
-        <input v-model="filters.cat_id" type="number" placeholder="Cat_id" />
+        Category
+        <select v-model="filters.cat_id">
+          <option value="">All categories</option>
+          <option
+            v-for="category in categories"
+            :key="category.id"
+            :value="String(category.id)"
+          >
+            {{ category.name }} — {{ category.nameBn }}
+          </option>
+        </select>
       </label>
       <label>
         Search
@@ -337,7 +352,7 @@ export default {
     return {
       categories: jobCategories,
       categoryId: "",
-      postedWithin: "",
+      postedWithin: 1,
       syncing: false,
       syncReport: "",
       listMeta: "",
@@ -666,7 +681,7 @@ export default {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...(this.categoryId !== "" ? { categoryId: Number(this.categoryId) } : {}),
-            ...(this.postedWithin ? { postedWithin: Number(this.postedWithin) } : {}),
+            postedWithin: Number(this.postedWithin),
           }),
         });
         const data = await res.json();
