@@ -1,6 +1,6 @@
+import cors from "cors";
 import express from "express";
 import http from "node:http";
-import path from "node:path";
 import { config } from "./config.js";
 import { closeDb, connectDb } from "./db.js";
 import { jobsRouter } from "./routes/jobs.js";
@@ -12,8 +12,13 @@ async function main() {
   console.log("Connected to MongoDB Atlas");
 
   const app = express();
+  app.use(
+    cors({
+      origin: config.frontendOrigin,
+      methods: ["GET", "POST", "PATCH", "OPTIONS"],
+    })
+  );
   app.use(express.json());
-  app.use(express.static(path.resolve(process.cwd(), "public")));
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true });
@@ -26,8 +31,9 @@ async function main() {
   attachWebSocket(server);
 
   server.listen(config.port, () => {
-    console.log(`FindMyJob running at http://localhost:${config.port}`);
+    console.log(`API running at http://localhost:${config.port}`);
     console.log(`WebSocket at ws://localhost:${config.port}/ws`);
+    console.log(`CORS origin: ${config.frontendOrigin}`);
   });
 
   const shutdown = async () => {

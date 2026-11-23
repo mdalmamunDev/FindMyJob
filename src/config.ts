@@ -27,4 +27,5 @@ export const config = {
   ollamaBaseUrl: (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").trim(),
   ollamaModel: (process.env.OLLAMA_MODEL || "llama3.2").trim(),
   resumePath: path.resolve(process.cwd(), "RESUME.md"),
+  frontendOrigin: (process.env.FRONTEND_ORIGIN || "http://localhost:5173").trim(),
 };

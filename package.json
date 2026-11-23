@@ -6,19 +6,24 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:api": "tsx watch src/index.ts",
+    "dev:web": "npm run dev --prefix frontend",
     "start": "tsx src/index.ts",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "build:web": "npm run build --prefix frontend"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
+    "cors": "^2.8.6",
     "dotenv": "^18.0.10",
     "express": "^5.3.0",
     "mongodb": "^7.9.1",
     "ws": "^8.23.0"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.6",
     "@types/ws": "^8.18.2",

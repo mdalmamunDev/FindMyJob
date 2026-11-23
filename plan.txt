@@ -32,23 +32,28 @@ MAX_PAGES=3               # fallback safety cap if frontend omits amount
 PROJECT LAYOUT
 --------------
 findmyjob/
-  package.json
+  package.json            # backend (API)
   tsconfig.json
   .env / .env.example
   RESUME.md
-  src/
-    index.ts              # Express app
-    db.ts                 # MongoDB Atlas connection
-    bdjobs.ts             # fetch + pagination
-    matcher.ts            # Ollama → match_percent
-    sync.ts               # dual-stream sync loop
+  src/                    # backend TypeScript
+    index.ts              # Express + CORS + WebSocket
+    db.ts
+    bdjobs.ts
+    matcher.ts
+    sync.ts
+    ws.ts
     routes/
       jobs.ts
       sync.ts
-  public/
-    index.html            # Vue 2 CDN app shell
-    app.js                # Vue 2 instance (CDN)
-    styles.css
+  frontend/               # separate Vue 2 + Vite app
+    package.json
+    vite.config.js        # proxies /api and /ws → :3000
+    index.html
+    src/
+      main.js
+      App.vue
+      styles.css
 
 
 API RESPONSE SHAPE (see api-response-demo.json)
