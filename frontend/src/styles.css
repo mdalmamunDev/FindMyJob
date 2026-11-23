@@ -385,7 +385,11 @@ button.secondary {
   right: 0.75rem;
   bottom: 0.75rem;
   z-index: 50;
-  width: min(240px, calc(100vw - 1.5rem));
+  display: flex;
+  flex-direction: column;
+  width: min(370px, calc(100vw - 1.5rem));
+  height: 440px;
+  max-height: calc(100vh - 1.5rem);
   padding: 0.65rem 0.75rem;
   border-radius: 8px;
   border: 1px solid var(--border);
@@ -449,6 +453,90 @@ button.secondary {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.current-job {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-height: 0;
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+  overflow: auto;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.current-job-badges {
+  display: flex;
+  flex: 0 0 22px;
+  gap: 0.25rem;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+.current-job-title {
+  display: -webkit-box;
+  flex: 0 0 2.3em;
+  overflow: hidden;
+  color: var(--green);
+  font-size: 0.85rem;
+  line-height: 1.15;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.current-job strong {
+  color: var(--text);
+}
+
+.current-job p {
+  margin: 0.1rem 0 0;
+}
+
+.current-job-company,
+.current-job-published {
+  flex: 0 0 1.2em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.current-job-description {
+  display: -webkit-box;
+  flex: 0 0 3.8em;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.current-job-meta {
+  flex: 0 0 auto;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.current-job-meta p {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.current-job-placeholder {
+  margin: auto;
+  text-align: center;
+}
+
+.current-job-phase {
+  color: var(--green);
+  font-weight: 700;
+}
+
+.current-job-error {
+  color: #b3261e;
 }
 
 /* Tablet: 2 columns */

@@ -1,5 +1,5 @@
 import { config } from "./config.js";
-import type { BdjobsJob } from "./types.js";
+import type { BdjobsJob, BdjobsJobDetails } from "./types.js";
 
 export interface BdjobsPage {
   premium: BdjobsJob[];
@@ -16,6 +16,12 @@ interface BdjobsApiResponse {
     totalpages?: number | string;
     total_records_found?: number | string;
   };
+}
+
+interface BdjobsJobDetailsResponse {
+  message?: string;
+  statuscode?: string;
+  data?: BdjobsJobDetails[] | BdjobsJobDetails;
 }
 
 function normalizeJob(job: BdjobsJob): BdjobsJob | null {
@@ -65,5 +71,65 @@ export async function fetchBdjobsPage(page: number): Promise<BdjobsPage> {
     premium,
     normal,
     totalPages: Number.isFinite(totalPages) ? totalPages : null,
+  };
+}
+
+export async function fetchBdjobsJobDetails(
+  jobId: string
+): Promise<BdjobsJobDetails> {
+  const url = new URL(config.bdjobsJobDetailsUrl);
+  url.searchParams.set("jobId", jobId);
+
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "findmyjob/1.0",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`BDJobs details HTTP ${res.status}`);
+  }
+
+  const json = (await res.json()) as BdjobsJobDetailsResponse;
+  if (json.statuscode !== "1" && json.message !== "Success") {
+    throw new Error(`BDJobs details API error: ${json.message ?? "unknown"}`);
+  }
+
+  const details = Array.isArray(json.data) ? json.data[0] : json.data;
+  if (!details || typeof details !== "object") {
+    throw new Error(`BDJobs returned no details for job ${jobId}`);
+  }
+
+  return details;
+}
+
+export function mergeBdjobsJobDetails(
+  job: BdjobsJob,
+  details: BdjobsJobDetails
+): BdjobsJob {
+  const companyName =
+    details.CompanyNameENG || details.CompnayName || job.companyName;
+  return {
+    ...job,
+    jobTitle: details.JobTitle || job.jobTitle,
+    companyName,
+    deadline: details.Deadline || job.deadline,
+    deadlineDB: details.DeadlineDB || job.deadlineDB,
+    publishDate: job.publishDate || details.PostedOn,
+    eduRec: details.EducationRequirements || job.eduRec,
+    experience: details.experience || job.experience,
+    location: details.JobLocation || job.location,
+    jobContext:
+      (typeof details.Context === "string" && details.Context) ||
+      job.jobContext,
+    jobDescription: details.JobDescription || job.jobDescription,
+    JobType: details.JobNature || job.JobType,
+    Vacancies: Number(details.JobVacancies) || job.Vacancies,
+    Salary:
+      details.JobSalaryRangeText ||
+      details.JobSalaryRange ||
+      job.Salary,
+    WorkPlace: details.JobWorkPlace || job.WorkPlace,
   };
 }

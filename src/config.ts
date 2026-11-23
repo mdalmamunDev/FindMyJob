@@ -23,6 +23,7 @@ export const config = {
   rpp: optionalInt("RPP", 50),
   maxPages: optionalInt("MAX_PAGES", 50),
   bdjobsUrl: required("BDJOBS_GET_JOBS_URL").split("#")[0].trim(),
+  bdjobsJobDetailsUrl: required("BDJOBS_GET_JOB_DETAILS_URL"),
   mongodbUrl: required("MONGODB_URL"),
   ollamaBaseUrl: (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").trim(),
   ollamaModel: (process.env.OLLAMA_MODEL || "llama3.2").trim(),

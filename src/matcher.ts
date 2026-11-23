@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import { config } from "./config.js";
-import type { BdjobsJob, MatchResult } from "./types.js";
+import type { BdjobsJob, BdjobsJobDetails, MatchResult } from "./types.js";
 
 let resumeCache: string | null = null;
 
@@ -24,7 +24,11 @@ function stripHtml(value: string | null | undefined): string {
     .trim();
 }
 
-function buildPrompt(resume: string, job: BdjobsJob): string {
+function buildPrompt(
+  resume: string,
+  job: BdjobsJob,
+  details?: BdjobsJobDetails
+): string {
   const jobBlock = [
     `Title: ${job.jobTitle ?? ""}`,
     `Company: ${job.companyName ?? ""}`,
@@ -36,6 +40,14 @@ function buildPrompt(resume: string, job: BdjobsJob): string {
     `Salary: ${job.Salary ?? ""}`,
     `Context: ${stripHtml(job.jobContext)}`,
     `Description: ${stripHtml(job.jobDescription)}`,
+    `Required skills: ${details?.SkillsRequired ?? ""}`,
+    `Suggested skills: ${details?.SuggestedSkills ?? ""}`,
+    `Additional requirements: ${stripHtml(details?.AdditionJobRequirements)}`,
+    `Company business: ${stripHtml(details?.CompanyBusiness)}`,
+    `Benefits: ${stripHtml(details?.JobOtherBenifits)}`,
+    `Age requirement: ${details?.Age ?? ""}`,
+    `Gender requirement: ${details?.Gender ?? ""}`,
+    `Key points: ${stripHtml(details?.JobKeyPoints)}`,
   ].join("\n");
 
   return `You are a job-fit scoring assistant.
@@ -85,8 +97,12 @@ function parseMatchJson(text: string): MatchResult {
   return { match_percent: percent, reason };
 }
 
-export async function scoreJob(job: BdjobsJob, resume: string): Promise<MatchResult> {
-  const prompt = buildPrompt(resume, job);
+export async function scoreJob(
+  job: BdjobsJob,
+  resume: string,
+  details?: BdjobsJobDetails
+): Promise<MatchResult> {
+  const prompt = buildPrompt(resume, job, details);
 
   try {
     const res = await fetch(`${config.ollamaBaseUrl}/api/generate`, {

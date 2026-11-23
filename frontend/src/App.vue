@@ -42,6 +42,62 @@
         <div class="toast-bar-fill" :style="{ width: progressPercent + '%' }"></div>
       </div>
       <p v-if="progressHint" class="toast-hint">{{ progressHint }}</p>
+      <div class="current-job" aria-live="polite">
+        <template v-if="currentJob">
+          <div class="current-job-badges">
+            <span class="badge match">
+              {{ currentJob.matchPercent === undefined ? "Scoring…" : `${currentJob.matchPercent}% match` }}
+            </span>
+            <span class="badge" :class="currentJob.source">
+              {{ currentJob.source || "Job" }}
+            </span>
+            <span class="badge recent">
+              {{
+                currentJob.phase === "loading_details"
+                  ? "Loading details"
+                  : currentJob.phase === "scoring"
+                    ? "Scoring"
+                    : currentJob.phase === "scored"
+                      ? "Scored"
+                      : currentJob.phase === "already_saved"
+                        ? "Already saved"
+                        : "Checking"
+              }}
+            </span>
+          </div>
+          <strong class="current-job-title">{{ currentJob.jobTitle }}</strong>
+          <p class="current-job-company">{{ currentJob.companyName || "Unknown company" }}</p>
+          <p class="current-job-published">Published: {{ displayDate(currentJob.publishDate) }}</p>
+          <p class="current-job-description">
+            {{ stripHtml(currentJob.jobDescription) || "No description available." }}
+          </p>
+          <div class="current-job-meta">
+            <p><b>Location:</b> {{ currentJob.location || "—" }}</p>
+            <p><b>Education:</b> {{ stripHtml(currentJob.educationRequirements) || "—" }}</p>
+            <p><b>Experience:</b> {{ currentJob.experience || "—" }}</p>
+            <p><b>Job type:</b> {{ currentJob.jobType || "—" }}</p>
+            <p><b>Workplace:</b> {{ currentJob.workplace || "—" }}</p>
+            <p><b>Salary:</b> {{ currentJob.salary || "—" }}</p>
+            <p><b>Deadline:</b> {{ displayDate(currentJob.deadline) }}</p>
+            <p v-if="currentJob.skillsRequired">
+              <b>Required skills:</b> {{ stripHtml(currentJob.skillsRequired) }}
+            </p>
+            <p v-if="currentJob.suggestedSkills">
+              <b>Suggested skills:</b> {{ stripHtml(currentJob.suggestedSkills) }}
+            </p>
+            <p v-if="currentJob.additionalRequirements">
+              <b>Requirements:</b> {{ stripHtml(currentJob.additionalRequirements) }}
+            </p>
+            <p v-if="currentJob.matchReason">
+              <b>Match reason:</b> {{ currentJob.matchReason }}
+            </p>
+          </div>
+          <p v-if="currentJob.detailsError" class="current-job-error">
+            Details unavailable: {{ currentJob.detailsError }}. Using list data.
+          </p>
+        </template>
+        <span v-else class="current-job-placeholder">Waiting for the next job…</span>
+      </div>
     </aside>
 
     <section class="filters" aria-label="Filters">
@@ -293,6 +349,7 @@ export default {
       progressCurrent: 0,
       progressTotal: 0,
       progressHint: "",
+      currentJob: null,
       filters: {
         min_match: 0,
         max_match: "",
@@ -402,10 +459,16 @@ export default {
         this.progressError = false;
         this.progressCurrent = 0;
         this.progressTotal = msg.total || 0;
+        this.currentJob = null;
         this.progressHint = msg.publishedAfter
           ? `Scanning jobs published since ${msg.publishedAfter}…`
           : "Starting…";
         this.syncReport = "";
+        return;
+      }
+
+      if (msg.type === "sync_job") {
+        this.currentJob = msg;
         return;
       }
 
@@ -430,6 +493,7 @@ export default {
         this.progressCurrent = msg.fetched || this.progressCurrent;
         this.progressTotal = msg.fetched || this.progressTotal;
         this.progressHint = `Added ${msg.newly_added || 0} · Skipped ${msg.skipped || 0} · Pages ${msg.pages || 0}`;
+        this.currentJob = null;
         this.syncReport = `Fetched ${msg.fetched} · Newly added ${msg.newly_added} · Skipped ${msg.skipped} · Pages ${msg.pages}`;
         this.reloadJobs();
         this.loadSyncStatus();
@@ -446,6 +510,7 @@ export default {
         this.progressDone = false;
         this.progressError = true;
         this.progressHint = msg.error || "Unknown error";
+        this.currentJob = null;
         this.syncReport = `Sync error: ${msg.error || "Unknown error"}`;
       }
     },

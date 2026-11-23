@@ -30,6 +30,47 @@ export interface BdjobsJob {
   [key: string]: unknown;
 }
 
+export interface BdjobsJobDetails {
+  JobId?: string;
+  JobTitle?: string;
+  CompnayName?: string;
+  CompanyNameENG?: string;
+  PostedOn?: string;
+  Deadline?: string;
+  DeadlineDB?: string;
+  JobVacancies?: string | number;
+  JobDescription?: string;
+  JobNature?: string;
+  JobWorkPlace?: string;
+  EducationRequirements?: string;
+  SkillsRequired?: string;
+  SuggestedSkills?: string;
+  Age?: string;
+  experience?: string;
+  Gender?: string;
+  AdditionJobRequirements?: string;
+  JobLocation?: string;
+  CompanyBusiness?: string;
+  CompanyAddress?: string;
+  CompanyHideAddress?: string;
+  CompanyWeb?: string;
+  JobOtherBenifits?: string;
+  RecruitmentProcessingInformation?: string;
+  JobSalaryRange?: string;
+  JobSalaryRangeText?: string;
+  JobSalaryMinSalary?: string;
+  JobSalaryMaxSalary?: string;
+  ApplyInstruction?: string;
+  ApplyEmail?: string;
+  HardCopy?: string;
+  WalkInInterview?: string;
+  ApplyURL?: string;
+  CompanyID?: string;
+  AssessmentRequired?: string;
+  JobKeyPoints?: string;
+  [key: string]: unknown;
+}
+
 export interface JobDocument extends BdjobsJob {
   source: JobSource;
   isApplied: boolean;
@@ -41,6 +82,8 @@ export interface JobDocument extends BdjobsJob {
   synced_at: Date;
   first_seen_at: Date;
   raw: BdjobsJob;
+  details?: BdjobsJobDetails;
+  rawDetails?: BdjobsJobDetails;
 }
 
 export interface SyncReport {
@@ -69,6 +112,34 @@ export type SyncProgressEvent =
       skipped: number;
       pages: number;
       jobTitle?: string;
+    }
+  | {
+      type: "sync_job";
+      jobTitle: string;
+      companyName?: string;
+      location?: string;
+      publishDate?: string;
+      phase:
+        | "checking"
+        | "loading_details"
+        | "scoring"
+        | "scored"
+        | "already_saved";
+      source?: JobSource;
+      detailsAvailable?: boolean;
+      detailsError?: string;
+      jobDescription?: string;
+      educationRequirements?: string;
+      skillsRequired?: string;
+      suggestedSkills?: string;
+      additionalRequirements?: string;
+      experience?: string;
+      jobType?: string;
+      workplace?: string;
+      salary?: string;
+      deadline?: string;
+      matchPercent?: number;
+      matchReason?: string;
     }
   | {
       type: "sync_done";
