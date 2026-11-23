@@ -52,6 +52,16 @@ body {
   align-items: end;
 }
 
+.last-sync {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.sync-form input[type="date"] {
+  max-width: 11rem;
+}
+
 .filters {
   padding: 0.55rem var(--pad-x);
   background: #fff;
@@ -111,6 +121,56 @@ button.secondary {
 .list-meta {
   margin: 0.45rem var(--pad-x);
   color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.list-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: end;
+  gap: 0.4rem 0.75rem;
+}
+
+.list-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.4rem;
+  padding: 0.25rem var(--pad-x) 0.5rem;
+}
+
+.list-controls select {
+  max-width: 11rem;
+}
+
+.publish-date {
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.danger {
+  background: #b3261e;
+  padding: 0.28rem 0.55rem;
+  font-size: 0.72rem;
+}
+
+.pagination-sentinel {
+  height: 1px;
+}
+
+.pagination-status {
+  margin: 0;
+  padding: 0.5rem var(--pad-x) 1.25rem;
+  color: var(--muted);
+  text-align: center;
   font-size: 0.8rem;
 }
 
@@ -282,6 +342,11 @@ button.secondary {
   color: #6a1b9a;
 }
 
+.badge.shortlisted {
+  background: #fff8e1;
+  color: #8d6e00;
+}
+
 .reason {
   margin: 0.3rem 0 0;
   font-size: 0.68rem;
@@ -415,6 +480,10 @@ button.secondary {
     align-items: flex-start;
   }
 
+  .last-sync {
+    flex-basis: 100%;
+  }
+
   .filters input,
   .filters select {
     max-width: none;
@@ -428,5 +497,21 @@ button.secondary {
 
   .card-footer {
     flex-wrap: wrap;
+  }
+
+  .list-toolbar {
+    align-items: flex-start;
+  }
+
+  .list-controls {
+    width: 100%;
+  }
+
+  .list-controls label {
+    flex: 1 1 calc(50% - 0.3rem);
+  }
+
+  .list-controls select {
+    max-width: none;
   }
 }

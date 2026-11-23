@@ -8,13 +8,18 @@
 
       <form class="sync-form" @submit.prevent="runSync">
         <label>
-          Scan amount
-          <input v-model.number="amount" type="number" min="1" required />
+          Amount
+          <input v-model.number="amount" type="number" min="1" placeholder="50" />
         </label>
-        <button type="submit" :disabled="syncing">
+        <label>
+          Published since
+          <input v-model="publishedAfter" type="date" />
+        </label>
+        <button type="submit" :disabled="syncing || (!amount && !publishedAfter)">
           {{ syncing ? "Syncing…" : "Sync" }}
         </button>
       </form>
+      <p class="last-sync">Last synced with BDJobs: {{ lastSyncLabel }}</p>
     </header>
 
     <p v-if="syncReport" class="sync-report">{{ syncReport }}</p>
@@ -29,7 +34,9 @@
         <strong>
           {{ progressError ? "Sync failed" : progressDone ? "Sync done" : "Syncing" }}
         </strong>
-        <span class="toast-count">{{ progressCurrent }}/{{ progressTotal }}</span>
+        <span class="toast-count">
+          {{ progressTotal ? `${progressCurrent}/${progressTotal}` : `${progressCurrent} checked` }}
+        </span>
       </div>
       <div class="toast-bar">
         <div class="toast-bar-fill" :style="{ width: progressPercent + '%' }"></div>
@@ -41,6 +48,10 @@
       <label>
         Min match %
         <input v-model.number="filters.min_match" type="number" min="0" max="100" />
+      </label>
+      <label>
+        Max match %
+        <input v-model.number="filters.max_match" type="number" min="0" max="100" />
       </label>
       <label>
         Category id
@@ -82,14 +93,67 @@
           <option value="false">Not applied</option>
         </select>
       </label>
-      <button type="button" @click="loadJobs">Apply filters</button>
+      <label>
+        Shortlisted
+        <select v-model="filters.is_sort_listed">
+          <option value="">Any</option>
+          <option value="true">Shortlisted</option>
+          <option value="false">Not shortlisted</option>
+        </select>
+      </label>
+      <label>
+        Removed
+        <select v-model="filters.is_removed">
+          <option value="false">Active</option>
+          <option value="true">Removed</option>
+          <option value="all">All</option>
+        </select>
+      </label>
+      <button type="button" @click="applyFilters">Apply filters</button>
     </section>
 
-    <p class="list-meta">{{ listMeta }}</p>
+    <section class="list-toolbar">
+      <p class="list-meta">{{ listMeta }}</p>
+      <div class="list-controls">
+        <label>
+          Sort by
+          <select v-model="sort" @change="applyFilters">
+            <option value="match_percent">Match percent</option>
+            <option value="synced_at">Last synced</option>
+            <option value="publishDate">Publishing date</option>
+            <option value="first_seen_at">First seen</option>
+          </select>
+        </label>
+        <label>
+          Order
+          <select v-model="sortDirection" @change="applyFilters">
+            <option value="desc">Newest / highest</option>
+            <option value="asc">Oldest / lowest</option>
+          </select>
+        </label>
+        <label>
+          Per page
+          <select v-model.number="pageSize" @change="applyFilters">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          class="danger"
+          :disabled="bulkRemoving || !totalCount || filters.is_removed === 'true'"
+          @click="removeAllFiltered"
+        >
+          {{ bulkRemoving ? "Removing…" : `Remove all (${totalCount})` }}
+        </button>
+      </div>
+    </section>
 
     <main class="job-list">
       <p v-if="!jobs.length" class="empty">
-        No jobs yet. Run a sync to pull from BDJobs.
+        No matching jobs found.
       </p>
 
       <article v-for="job in jobs" :key="job.Jobid" class="job-card">
@@ -104,6 +168,7 @@
             </span>
             <span v-if="job.isRecent" class="badge recent">Recent</span>
             <span v-if="job.isApplied" class="badge applied">Applied</span>
+            <span v-if="job.isSortListed" class="badge shortlisted">Shortlisted</span>
           </div>
 
           <h2 class="job-title">
@@ -116,6 +181,7 @@
             </a>
           </h2>
           <p class="company">{{ job.companyName || "Unknown company" }}</p>
+          <p class="publish-date">Published: {{ displayDate(job.publishDate) }}</p>
           <p v-if="jobDesc(job)" class="desc">{{ jobDesc(job) }}</p>
 
           <div class="meta">
@@ -160,6 +226,16 @@
             <button type="button" class="secondary" @click="toggleApplied(job)">
               {{ job.isApplied ? "Mark not applied" : "Mark applied" }}
             </button>
+            <button type="button" class="secondary" @click="toggleSortListed(job)">
+              {{ job.isSortListed ? "Remove shortlist" : "Shortlist" }}
+            </button>
+            <button
+              type="button"
+              :class="job.isRemoved ? 'secondary' : 'danger'"
+              @click="toggleRemoved(job)"
+            >
+              {{ job.isRemoved ? "Restore" : "Remove" }}
+            </button>
           </div>
         </div>
 
@@ -168,10 +244,19 @@
         </div>
       </article>
     </main>
+    <div ref="loadMoreSentinel" class="pagination-sentinel" aria-hidden="true"></div>
+    <p v-if="loadingJobs" class="pagination-status" aria-live="polite">
+      Loading more jobs…
+    </p>
+    <p v-else-if="jobs.length && !hasMore" class="pagination-status">
+      You’ve reached the end of the list.
+    </p>
   </div>
 </template>
 
 <script>
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+
 function stripHtml(value) {
   if (!value) return "";
   const tmp = document.createElement("div");
@@ -184,10 +269,23 @@ export default {
   data() {
     return {
       amount: 50,
+      publishedAfter: "",
       syncing: false,
       syncReport: "",
       listMeta: "",
+      lastSyncAt: null,
       jobs: [],
+      page: 1,
+      pageSize: 20,
+      pageCount: 0,
+      totalCount: 0,
+      loadingJobs: false,
+      hasMore: true,
+      jobsRequestId: 0,
+      loadMoreObserver: null,
+      sort: "match_percent",
+      sortDirection: "desc",
+      bulkRemoving: false,
       socket: null,
       progressVisible: false,
       progressDone: false,
@@ -197,6 +295,7 @@ export default {
       progressHint: "",
       filters: {
         min_match: 0,
+        max_match: "",
         cat_id: "",
         q: "",
         location: "",
@@ -204,10 +303,30 @@ export default {
         source: "all",
         is_recent: "",
         is_applied: "",
+        is_sort_listed: "",
+        is_removed: "false",
+      },
+      appliedFilters: {
+        min_match: 0,
+        max_match: "",
+        cat_id: "",
+        q: "",
+        location: "",
+        job_type: "",
+        source: "all",
+        is_recent: "",
+        is_applied: "",
+        is_sort_listed: "",
+        is_removed: "false",
       },
     };
   },
   computed: {
+    lastSyncLabel() {
+      return this.lastSyncAt
+        ? new Date(this.lastSyncAt).toLocaleString()
+        : "Never";
+    },
     progressPercent() {
       if (!this.progressTotal) return 0;
       return Math.min(
@@ -218,9 +337,25 @@ export default {
   },
   mounted() {
     this.connectSocket();
+    this.loadMoreObserver = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          this.loadNextPage();
+        }
+      },
+      { rootMargin: "300px" }
+    );
+    if (this.$refs.loadMoreSentinel) {
+      this.loadMoreObserver.observe(this.$refs.loadMoreSentinel);
+    }
     this.loadJobs();
+    this.loadSyncStatus();
   },
   beforeDestroy() {
+    if (this.loadMoreObserver) {
+      this.loadMoreObserver.disconnect();
+      this.loadMoreObserver = null;
+    }
     if (this.socket) {
       this.socket.close();
       this.socket = null;
@@ -230,8 +365,11 @@ export default {
     stripHtml,
 
     connectSocket() {
-      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const url = `${protocol}//${window.location.host}/ws`;
+      const apiOrigin = apiBaseUrl
+        ? new URL(apiBaseUrl, window.location.origin)
+        : window.location;
+      const protocol = apiOrigin.protocol === "https:" ? "wss:" : "ws:";
+      const url = `${protocol}//${apiOrigin.host}/ws`;
 
       const open = () => {
         const socket = new WebSocket(url);
@@ -263,8 +401,10 @@ export default {
         this.progressDone = false;
         this.progressError = false;
         this.progressCurrent = 0;
-        this.progressTotal = msg.total || this.amount;
-        this.progressHint = "Starting…";
+        this.progressTotal = msg.total || 0;
+        this.progressHint = msg.publishedAfter
+          ? `Scanning jobs published since ${msg.publishedAfter}…`
+          : "Starting…";
         this.syncReport = "";
         return;
       }
@@ -291,7 +431,8 @@ export default {
         this.progressTotal = msg.fetched || this.progressTotal;
         this.progressHint = `Added ${msg.newly_added || 0} · Skipped ${msg.skipped || 0} · Pages ${msg.pages || 0}`;
         this.syncReport = `Fetched ${msg.fetched} · Newly added ${msg.newly_added} · Skipped ${msg.skipped} · Pages ${msg.pages}`;
-        this.loadJobs();
+        this.reloadJobs();
+        this.loadSyncStatus();
 
         setTimeout(() => {
           if (this.progressDone) this.progressVisible = false;
@@ -321,10 +462,17 @@ export default {
       return `https://bdjobs.com/h/details/${encodeURIComponent(jobId)}`;
     },
 
+    displayDate(value) {
+      if (!value) return "—";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+    },
+
     filterParams() {
       const params = new URLSearchParams();
       const keys = [
         "min_match",
+        "max_match",
         "cat_id",
         "q",
         "location",
@@ -332,10 +480,12 @@ export default {
         "source",
         "is_recent",
         "is_applied",
+        "is_sort_listed",
+        "is_removed",
       ];
 
       keys.forEach((key) => {
-        const value = this.filters[key];
+        const value = this.appliedFilters[key];
         if (key === "source" && value === "all") return;
         if (value !== "" && value !== null && value !== undefined) {
           params.set(key, value);
@@ -345,36 +495,102 @@ export default {
       return params;
     },
 
-    async loadJobs() {
+    listParams() {
+      const params = this.filterParams();
+      params.set("page", String(this.page));
+      params.set("page_size", String(this.pageSize));
+      params.set("sort", this.sort);
+      params.set("sort_direction", this.sortDirection);
+      return params;
+    },
+
+    applyFilters() {
+      this.appliedFilters = { ...this.filters };
+      this.reloadJobs();
+    },
+
+    reloadJobs() {
+      this.page = 1;
+      this.jobs = [];
+      this.hasMore = true;
+      return this.loadJobs();
+    },
+
+    loadNextPage() {
+      if (this.loadingJobs || !this.hasMore) return;
+      this.page += 1;
+      this.loadJobs(true);
+    },
+
+    async loadJobs(append = false) {
+      if (append && this.loadingJobs) return;
+      if (!append) this.loadingJobs = false;
+      const requestId = ++this.jobsRequestId;
+      const requestedPage = this.page;
+      this.loadingJobs = true;
       try {
-        const res = await fetch(`/api/jobs?${this.filterParams().toString()}`);
+        const res = await fetch(`${apiBaseUrl}/api/jobs?${this.listParams().toString()}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to load jobs");
-        this.jobs = data.jobs || [];
-        this.listMeta = `${data.count} jobs shown (sorted by match %)`;
+        if (requestId !== this.jobsRequestId) return;
+        this.jobs = append ? this.jobs.concat(data.jobs || []) : data.jobs || [];
+        this.totalCount = data.count;
+        this.page = data.page;
+        this.pageCount = data.pageCount;
+        this.hasMore = data.page < data.pageCount;
+        this.listMeta = `Showing ${this.jobs.length} of ${data.count} jobs`;
       } catch (err) {
+        if (requestId !== this.jobsRequestId) return;
         this.listMeta = err.message;
-        this.jobs = [];
+        this.page = requestedPage;
+        if (!append) {
+          this.jobs = [];
+          this.totalCount = 0;
+          this.pageCount = 0;
+          this.hasMore = false;
+        } else {
+          this.hasMore = false;
+        }
+      } finally {
+        if (requestId === this.jobsRequestId) {
+          this.loadingJobs = false;
+        }
+      }
+    },
+
+    async loadSyncStatus() {
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/sync/status`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load sync status");
+        this.lastSyncAt = data.lastSyncAt;
+      } catch (err) {
+        console.error("Failed to load sync status", err);
       }
     },
 
     async runSync() {
-      const amount = Number(this.amount) || 1;
+      const amount = Number(this.amount);
 
       this.syncing = true;
       this.progressVisible = true;
       this.progressDone = false;
       this.progressError = false;
       this.progressCurrent = 0;
-      this.progressTotal = amount;
-      this.progressHint = "Starting…";
+      this.progressTotal = this.publishedAfter ? 0 : amount;
+      this.progressHint = this.publishedAfter
+        ? `Scanning jobs published since ${this.publishedAfter}…`
+        : "Starting…";
       this.syncReport = "";
 
       try {
-        const res = await fetch("/api/sync", {
+        const res = await fetch(`${apiBaseUrl}/api/sync`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount }),
+          body: JSON.stringify({
+            ...(this.amount ? { amount } : {}),
+            ...(this.publishedAfter ? { publishedAfter: this.publishedAfter } : {}),
+          }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Sync failed");
@@ -390,16 +606,77 @@ export default {
     async toggleApplied(job) {
       const next = !job.isApplied;
       try {
-        const res = await fetch(`/api/jobs/${encodeURIComponent(job.Jobid)}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ isApplied: next }),
-        });
+        const res = await fetch(
+          `${apiBaseUrl}/api/jobs/${encodeURIComponent(job.Jobid)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isApplied: next }),
+          }
+        );
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Update failed");
-        await this.loadJobs();
+        await this.reloadJobs();
       } catch (err) {
         alert(err.message);
+      }
+    },
+
+    async toggleRemoved(job) {
+      try {
+        const res = await fetch(
+          `${apiBaseUrl}/api/jobs/${encodeURIComponent(job.Jobid)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isRemoved: !job.isRemoved }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Remove update failed");
+        await this.reloadJobs();
+      } catch (err) {
+        alert(err.message);
+      }
+    },
+
+    async toggleSortListed(job) {
+      try {
+        const res = await fetch(
+          `${apiBaseUrl}/api/jobs/${encodeURIComponent(job.Jobid)}`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isSortListed: !job.isSortListed }),
+          }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Shortlist update failed");
+        job.isSortListed = data.isSortListed;
+      } catch (err) {
+        alert(err.message);
+      }
+    },
+
+    async removeAllFiltered() {
+      if (!window.confirm(`Remove all ${this.totalCount} matching jobs?`)) return;
+      this.bulkRemoving = true;
+      try {
+        const res = await fetch(`${apiBaseUrl}/api/jobs/bulk-remove`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            filters: Object.fromEntries(this.filterParams()),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Bulk remove failed");
+        this.syncReport = `Removed ${data.removedCount} matching jobs`;
+        await this.reloadJobs();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        this.bulkRemoving = false;
       }
     },
   },

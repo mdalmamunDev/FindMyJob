@@ -33,6 +33,8 @@ export interface BdjobsJob {
 export interface JobDocument extends BdjobsJob {
   source: JobSource;
   isApplied: boolean;
+  isRemoved: boolean;
+  isSortListed: boolean;
   isRecent: boolean;
   match_percent: number;
   match_reason: string;
@@ -48,10 +50,16 @@ export interface SyncReport {
   pages: number;
 }
 
+export interface SyncOptions {
+  amount?: number;
+  publishedAfter?: string;
+}
+
 export type SyncProgressEvent =
   | {
       type: "sync_started";
       total: number;
+      publishedAfter?: string;
     }
   | {
       type: "sync_progress";

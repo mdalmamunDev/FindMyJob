@@ -1,11 +1,12 @@
 import { fetchBdjobsPage } from "./bdjobs.js";
 import { config } from "./config.js";
-import { jobsCollection } from "./db.js";
+import { jobsCollection, recordSyncCompleted } from "./db.js";
 import { loadResume, scoreJob } from "./matcher.js";
 import type {
   BdjobsJob,
   JobDocument,
   JobSource,
+  SyncOptions,
   SyncProgressCallback,
   SyncReport,
 } from "./types.js";
@@ -46,6 +47,8 @@ async function processJob(
     ...job,
     source,
     isApplied: false,
+    isRemoved: false,
+    isSortListed: false,
     isRecent: true,
     match_percent: match.match_percent,
     match_reason: match.reason,
@@ -60,10 +63,15 @@ async function processJob(
 }
 
 async function executeSync(
-  amount: number,
+  options: SyncOptions,
   onProgress?: SyncProgressCallback
 ): Promise<SyncReport> {
-  const target = Math.max(1, Math.floor(amount));
+  const publishedAfter = options.publishedAfter
+    ? new Date(`${options.publishedAfter}T00:00:00.000Z`)
+    : null;
+  const target = publishedAfter
+    ? 0
+    : Math.max(1, Math.floor(options.amount ?? 50));
 
   const report: SyncReport = {
     fetched: 0,
@@ -72,17 +80,20 @@ async function executeSync(
     pages: 0,
   };
 
-  onProgress?.({ type: "sync_started", total: target });
+  onProgress?.({
+    type: "sync_started",
+    total: target,
+    ...(options.publishedAfter ? { publishedAfter: options.publishedAfter } : {}),
+  });
 
   const resume = await loadResume();
 
-  const pageCap = Math.min(
-    config.maxPages,
-    Math.max(1, Math.ceil(target / config.rpp) + 2)
-  );
+  const pageCap = publishedAfter
+    ? config.maxPages
+    : Math.min(config.maxPages, Math.max(1, Math.ceil(target / config.rpp) + 2));
 
   for (let page = 1; page <= pageCap; page += 1) {
-    if (report.fetched >= target) break;
+    if (!publishedAfter && report.fetched >= target) break;
 
     const { premium, normal, totalPages } = await fetchBdjobsPage(page);
     report.pages += 1;
@@ -91,6 +102,8 @@ async function executeSync(
     if (totalPages !== null && page > totalPages) break;
 
     let newOnPage = 0;
+    let allDatedJobsBeforeThreshold = true;
+    let pageHasDatedJobs = false;
 
     const streams: Array<{ list: BdjobsJob[]; source: JobSource }> = [
       { list: premium, source: "premium" },
@@ -99,7 +112,21 @@ async function executeSync(
 
     for (const { list, source } of streams) {
       for (const job of list) {
-        if (report.fetched >= target) break;
+        if (!publishedAfter && report.fetched >= target) break;
+
+        if (publishedAfter) {
+          const publishDate = job.publishDate ? new Date(job.publishDate) : null;
+          if (!publishDate || Number.isNaN(publishDate.getTime())) {
+            allDatedJobsBeforeThreshold = false;
+            continue;
+          }
+          pageHasDatedJobs = true;
+          if (publishDate >= publishedAfter) {
+            allDatedJobsBeforeThreshold = false;
+          } else {
+            continue;
+          }
+        }
 
         report.fetched += 1;
         const result = await processJob(job, source, resume, report);
@@ -115,12 +142,17 @@ async function executeSync(
           jobTitle: job.jobTitle,
         });
       }
-      if (report.fetched >= target) break;
+      if (!publishedAfter && report.fetched >= target) break;
     }
 
-    if (newOnPage === 0) break;
+    if (publishedAfter) {
+      if (pageHasDatedJobs && allDatedJobsBeforeThreshold) break;
+    } else if (newOnPage === 0) {
+      break;
+    }
   }
 
+  await recordSyncCompleted(new Date());
   onProgress?.({
     type: "sync_done",
     fetched: report.fetched,
@@ -134,13 +166,13 @@ async function executeSync(
 
 /** Claim the sync lock and run in background. Returns false if already running. */
 export function startSyncBackground(
-  amount: number,
+  options: SyncOptions,
   onProgress?: SyncProgressCallback
 ): boolean {
   if (syncRunning) return false;
   syncRunning = true;
 
-  void executeSync(amount, onProgress)
+  void executeSync(options, onProgress)
     .catch((err) => {
       const message = err instanceof Error ? err.message : String(err);
       onProgress?.({ type: "sync_error", error: message });
