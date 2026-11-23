@@ -1,9 +1,11 @@
 import express from "express";
+import http from "node:http";
 import path from "node:path";
 import { config } from "./config.js";
 import { closeDb, connectDb } from "./db.js";
 import { jobsRouter } from "./routes/jobs.js";
 import { syncRouter } from "./routes/sync.js";
+import { attachWebSocket } from "./ws.js";
 
 async function main() {
   await connectDb();
@@ -20,8 +22,12 @@ async function main() {
   app.use("/api/sync", syncRouter);
   app.use("/api/jobs", jobsRouter);
 
-  const server = app.listen(config.port, () => {
+  const server = http.createServer(app);
+  attachWebSocket(server);
+
+  server.listen(config.port, () => {
     console.log(`FindMyJob running at http://localhost:${config.port}`);
+    console.log(`WebSocket at ws://localhost:${config.port}/ws`);
   });
 
   const shutdown = async () => {

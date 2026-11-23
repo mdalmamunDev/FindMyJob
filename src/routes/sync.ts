@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { runSync } from "../sync.js";
+import { startSyncBackground } from "../sync.js";
+import { broadcast } from "../ws.js";
 
 export const syncRouter = Router();
 
-syncRouter.post("/", async (req, res) => {
+syncRouter.post("/", (req, res) => {
   try {
     const amountRaw = req.body?.amount ?? 50;
     const amount = Number(amountRaw);
@@ -13,8 +14,21 @@ syncRouter.post("/", async (req, res) => {
       return;
     }
 
-    const report = await runSync(amount);
-    res.json(report);
+    const target = Math.floor(amount);
+    const started = startSyncBackground(target, (event) => {
+      broadcast(event);
+    });
+
+    if (!started) {
+      res.status(409).json({ error: "Sync already running" });
+      return;
+    }
+
+    res.status(202).json({
+      started: true,
+      amount: target,
+      message: "Sync started. Watch progress over WebSocket.",
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[sync]", message);

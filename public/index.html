@@ -27,6 +27,25 @@
 
       <p v-if="syncReport" class="sync-report">{{ syncReport }}</p>
 
+      <aside
+        v-if="progressVisible"
+        class="sync-progress-toast"
+        :class="{ done: progressDone, error: progressError }"
+        aria-live="polite"
+      >
+        <div class="toast-top">
+          <strong>{{ progressError ? "Sync failed" : progressDone ? "Sync done" : "Syncing" }}</strong>
+          <span class="toast-count">{{ progressCurrent }}/{{ progressTotal }}</span>
+        </div>
+        <div class="toast-bar">
+          <div
+            class="toast-bar-fill"
+            :style="{ width: progressPercent + '%' }"
+          ></div>
+        </div>
+        <p v-if="progressHint" class="toast-hint">{{ progressHint }}</p>
+      </aside>
+
       <section class="filters" aria-label="Filters">
         <label>
           Min match %

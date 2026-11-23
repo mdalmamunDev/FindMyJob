@@ -48,6 +48,34 @@ export interface SyncReport {
   pages: number;
 }
 
+export type SyncProgressEvent =
+  | {
+      type: "sync_started";
+      total: number;
+    }
+  | {
+      type: "sync_progress";
+      current: number;
+      total: number;
+      newly_added: number;
+      skipped: number;
+      pages: number;
+      jobTitle?: string;
+    }
+  | {
+      type: "sync_done";
+      fetched: number;
+      newly_added: number;
+      skipped: number;
+      pages: number;
+    }
+  | {
+      type: "sync_error";
+      error: string;
+    };
+
+export type SyncProgressCallback = (event: SyncProgressEvent) => void;
+
 export interface MatchResult {
   match_percent: number;
   reason: string;

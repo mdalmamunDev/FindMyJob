@@ -157,7 +157,9 @@ HTTP API
 --------
 POST /api/sync
   body: { amount: number }   # e.g. 1000 = scan latest 1000 items
-  → { fetched, newly_added, skipped, pages }
+  → instant 202 { started, amount }; work continues in background
+  WebSocket /ws progress: sync_started | sync_progress (current/total) | sync_done | sync_error
+  Frontend corner toast shows e.g. 12/100
 
 GET /api/jobs
   query:

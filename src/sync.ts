@@ -2,7 +2,19 @@ import { fetchBdjobsPage } from "./bdjobs.js";
 import { config } from "./config.js";
 import { jobsCollection } from "./db.js";
 import { loadResume, scoreJob } from "./matcher.js";
-import type { BdjobsJob, JobDocument, JobSource, SyncReport } from "./types.js";
+import type {
+  BdjobsJob,
+  JobDocument,
+  JobSource,
+  SyncProgressCallback,
+  SyncReport,
+} from "./types.js";
+
+let syncRunning = false;
+
+export function isSyncRunning(): boolean {
+  return syncRunning;
+}
 
 async function processJob(
   job: BdjobsJob,
@@ -47,9 +59,11 @@ async function processJob(
   return "new";
 }
 
-export async function runSync(amount: number): Promise<SyncReport> {
+async function executeSync(
+  amount: number,
+  onProgress?: SyncProgressCallback
+): Promise<SyncReport> {
   const target = Math.max(1, Math.floor(amount));
-  const resume = await loadResume();
 
   const report: SyncReport = {
     fetched: 0,
@@ -57,6 +71,10 @@ export async function runSync(amount: number): Promise<SyncReport> {
     skipped: 0,
     pages: 0,
   };
+
+  onProgress?.({ type: "sync_started", total: target });
+
+  const resume = await loadResume();
 
   const pageCap = Math.min(
     config.maxPages,
@@ -86,13 +104,51 @@ export async function runSync(amount: number): Promise<SyncReport> {
         report.fetched += 1;
         const result = await processJob(job, source, resume, report);
         if (result === "new") newOnPage += 1;
+
+        onProgress?.({
+          type: "sync_progress",
+          current: report.fetched,
+          total: target,
+          newly_added: report.newly_added,
+          skipped: report.skipped,
+          pages: report.pages,
+          jobTitle: job.jobTitle,
+        });
       }
       if (report.fetched >= target) break;
     }
 
-    // Caught up: whole page already known
     if (newOnPage === 0) break;
   }
 
+  onProgress?.({
+    type: "sync_done",
+    fetched: report.fetched,
+    newly_added: report.newly_added,
+    skipped: report.skipped,
+    pages: report.pages,
+  });
+
   return report;
+}
+
+/** Claim the sync lock and run in background. Returns false if already running. */
+export function startSyncBackground(
+  amount: number,
+  onProgress?: SyncProgressCallback
+): boolean {
+  if (syncRunning) return false;
+  syncRunning = true;
+
+  void executeSync(amount, onProgress)
+    .catch((err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      onProgress?.({ type: "sync_error", error: message });
+      console.error("[sync]", message);
+    })
+    .finally(() => {
+      syncRunning = false;
+    });
+
+  return true;
 }

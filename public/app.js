@@ -14,6 +14,13 @@ new Vue({
       syncReport: "",
       listMeta: "",
       jobs: [],
+      socket: null,
+      progressVisible: false,
+      progressDone: false,
+      progressError: false,
+      progressCurrent: 0,
+      progressTotal: 0,
+      progressHint: "",
       filters: {
         min_match: 0,
         cat_id: "",
@@ -26,11 +33,126 @@ new Vue({
       },
     };
   },
+  computed: {
+    progressPercent: function () {
+      if (!this.progressTotal) return 0;
+      return Math.min(
+        100,
+        Math.round((this.progressCurrent / this.progressTotal) * 100)
+      );
+    },
+  },
   mounted: function () {
+    this.connectSocket();
     this.loadJobs();
+  },
+  beforeDestroy: function () {
+    if (this.socket) {
+      this.socket.close();
+      this.socket = null;
+    }
   },
   methods: {
     stripHtml: stripHtml,
+
+    connectSocket: function () {
+      var self = this;
+      var protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      var url = protocol + "//" + window.location.host + "/ws";
+
+      function open() {
+        var socket = new WebSocket(url);
+        self.socket = socket;
+
+        socket.onmessage = function (event) {
+          try {
+            self.onSocketMessage(JSON.parse(event.data));
+          } catch (err) {
+            console.error("Bad WS payload", err);
+          }
+        };
+
+        socket.onclose = function () {
+          self.socket = null;
+          setTimeout(open, 2000);
+        };
+      }
+
+      open();
+    },
+
+    onSocketMessage: function (msg) {
+      if (!msg || !msg.type) return;
+
+      if (msg.type === "sync_started") {
+        this.syncing = true;
+        this.progressVisible = true;
+        this.progressDone = false;
+        this.progressError = false;
+        this.progressCurrent = 0;
+        this.progressTotal = msg.total || this.amount;
+        this.progressHint = "Starting…";
+        this.syncReport = "";
+        return;
+      }
+
+      if (msg.type === "sync_progress") {
+        this.syncing = true;
+        this.progressVisible = true;
+        this.progressDone = false;
+        this.progressError = false;
+        this.progressCurrent = msg.current || 0;
+        this.progressTotal = msg.total || this.progressTotal;
+        this.progressHint =
+          (msg.newly_added || 0) +
+          " new · " +
+          (msg.skipped || 0) +
+          " skipped" +
+          (msg.jobTitle ? " · " + msg.jobTitle : "");
+        return;
+      }
+
+      if (msg.type === "sync_done") {
+        this.syncing = false;
+        this.progressVisible = true;
+        this.progressDone = true;
+        this.progressError = false;
+        this.progressCurrent = msg.fetched || this.progressCurrent;
+        this.progressTotal = msg.fetched || this.progressTotal;
+        this.progressHint =
+          "Added " +
+          (msg.newly_added || 0) +
+          " · Skipped " +
+          (msg.skipped || 0) +
+          " · Pages " +
+          (msg.pages || 0);
+        this.syncReport =
+          "Fetched " +
+          msg.fetched +
+          " · Newly added " +
+          msg.newly_added +
+          " · Skipped " +
+          msg.skipped +
+          " · Pages " +
+          msg.pages;
+        this.loadJobs();
+
+        var self = this;
+        setTimeout(function () {
+          if (self.progressDone) self.progressVisible = false;
+        }, 4000);
+        return;
+      }
+
+      if (msg.type === "sync_error") {
+        this.syncing = false;
+        this.progressVisible = true;
+        this.progressDone = false;
+        this.progressError = true;
+        this.progressHint = msg.error || "Unknown error";
+        this.syncReport = "Sync error: " + (msg.error || "Unknown error");
+      }
+    },
 
     jobTitle: function (job) {
       return job.jobTitle || job.JobTitleBng || "Untitled";
@@ -90,13 +212,21 @@ new Vue({
 
     runSync: function () {
       var self = this;
+      var amount = Number(self.amount) || 1;
+
       self.syncing = true;
-      self.syncReport = "Sync in progress — scoring new jobs with Ollama…";
+      self.progressVisible = true;
+      self.progressDone = false;
+      self.progressError = false;
+      self.progressCurrent = 0;
+      self.progressTotal = amount;
+      self.progressHint = "Starting…";
+      self.syncReport = "";
 
       fetch("/api/sync", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: Number(self.amount) || 1 }),
+        body: JSON.stringify({ amount: amount }),
       })
         .then(function (res) {
           return res.json().then(function (data) {
@@ -104,23 +234,15 @@ new Vue({
             return data;
           });
         })
-        .then(function (data) {
-          self.syncReport =
-            "Fetched " +
-            data.fetched +
-            " · Newly added " +
-            data.newly_added +
-            " · Skipped " +
-            data.skipped +
-            " · Pages " +
-            data.pages;
-          return self.loadJobs();
+        .then(function () {
+          // Work continues via WebSocket progress events
+          self.progressHint = "Connected — waiting for progress…";
         })
         .catch(function (err) {
-          self.syncReport = "Sync error: " + err.message;
-        })
-        .then(function () {
           self.syncing = false;
+          self.progressError = true;
+          self.progressHint = err.message;
+          self.syncReport = "Sync error: " + err.message;
         });
     },
 
