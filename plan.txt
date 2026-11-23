@@ -1,0 +1,233 @@
+FindMyJob — BDJobs + Ollama Matcher (v1 plan)
+==============================================
+
+GOAL
+----
+Hit BDJobs API, score new jobs with local Ollama against RESUME.md,
+store results in MongoDB Atlas with match_percent, show a filterable
+web list sorted by match %.
+
+
+STACK
+-----
+- TypeScript
+- Node.js + Express
+- MongoDB Atlas (cloud)
+- Ollama (local) for match scoring
+- Simple web UI (static HTML/CSS/JS served by Express)
+- Profile used for matching: RESUME.md
+
+
+ENV
+---
+BDJOBS_GET_JOBS_URL=...   (already in .env)
+RPP=50
+MONGODB_URL=...           # full Atlas connection string
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5-coder:7b
+PORT=3000
+MAX_PAGES=3               # fallback safety cap if frontend omits amount
+
+
+PROJECT LAYOUT
+--------------
+findmyjob/
+  package.json
+  tsconfig.json
+  .env / .env.example
+  RESUME.md
+  src/
+    index.ts              # Express app
+    db.ts                 # MongoDB Atlas connection
+    bdjobs.ts             # fetch + pagination
+    matcher.ts            # Ollama → match_percent
+    sync.ts               # dual-stream sync loop
+    routes/
+      jobs.ts
+      sync.ts
+  public/
+    index.html            # Vue 2 CDN app shell
+    app.js                # Vue 2 instance (CDN)
+    styles.css
+
+
+API RESPONSE SHAPE (see api-response-demo.json)
+-----------------------------------------------
+{
+  message, statuscode,
+  premiumData: [ job, ... ],   // sponsored/premium
+  data: [ job, ... ],          // normal
+  common: { total_records_found, totalpages, ... }
+}
+
+Each job has: Jobid, jobTitle, companyName, location, experience,
+eduRec, jobContext, jobDescription, JobType, Salary, WorkPlace,
+publishDate, deadline, Cat_id, etc.
+
+
+PREMIUM VS NORMAL + WHEN TO STOP (critical)
+-------------------------------------------
+premiumData and data are TWO SEPARATE lists, not one timeline.
+Do NOT merge then "stop on first known Jobid" — that can skip
+unsynced jobs in the other list.
+
+Practical v1 sync (simplest and safe):
+
+1. Frontend sends sync amount N (e.g. 1000) = scan latest N items.
+   Fetch pages with rpp from env until scanned count reaches N
+   (or empty page / API error / optional MAX_PAGES fallback).
+2. For each of premiumData and data SEPARATELY:
+   - For every job (counts toward scanned N):
+     - if Jobid already in Mongo → SKIP insert/score
+       BUT set isRecent = false (seen again on a later sync)
+     - if new → Ollama score → insert with match_percent
+       + source: "premium" | "normal"
+       + isRecent: true
+       + isApplied: false
+3. Also stop early if a FULL PAGE produces ZERO new Jobids
+   across BOTH lists AND scanned count goals are met / feed exhausted.
+
+First run (empty DB): scores up to N newest jobs.
+Later runs: skips known ids (marks isRecent=false); only new ones get scored.
+
+
+SYNC REPORT (returned to frontend)
+----------------------------------
+Every sync response must include:
+- fetched   → total items scanned from BDJobs this run
+- newly_added → how many were new inserts (scored + saved)
+- skipped   → already known Jobids
+- pages     → pages requested
+
+
+MONGODB ATLAS SCHEMA (collection: jobs)
+---------------------------------------
+Store ALL fields from api-response-demo.json job objects as top-level
+document properties (same names as API), PLUS meta + raw backup.
+
+From API (every job field in the demo):
+- Jobid            string   (unique index)
+- AdType           string
+- jobTitle         string
+- companyName      string
+- JobTitleBng      string
+- deadline         string          # e.g. "Dec 20, 2026"
+- deadlineDB       string/Date     # e.g. "2026-12-20T00:00:00Z"
+- publishDate      string/Date
+- eduRec           string          # may contain HTML
+- experience       string
+- standout         number
+- logo             string
+- lantype          number
+- location         string
+- JobLang          string
+- jobContext       string|null     # may contain HTML
+- isEarlyAccess    boolean
+- OnlineJob        boolean
+- logoUrl          string
+- jobDescription   string          # may contain HTML
+- JobType          string          # e.g. FullTime
+- Vacancies        number
+- Salary           string
+- WorkPlace        string
+- Cat_id           number
+
+App meta (added by us):
+- source           "premium" | "normal"
+- isApplied        boolean (default false; user can toggle)
+- isRecent         boolean (true on first insert; false when seen again on a later sync)
+- match_percent    number 0–100
+- match_reason     short text from Ollama
+- synced_at        Date
+- first_seen_at    Date
+- raw              object  (full original API job object as backup)
+
+Unique index on Jobid → re-sync is idempotent.
+
+
+OLLAMA MATCHING
+---------------
+- Read RESUME.md once per sync
+- Prompt: score fit 0–100 vs job title/experience/edu/context
+- Expect JSON: { "match_percent": number, "reason": "..." }
+- Parse robustly; clamp 0–100; on failure store 0 + error reason
+
+
+HTTP API
+--------
+POST /api/sync
+  body: { amount: number }   # e.g. 1000 = scan latest 1000 items
+  → { fetched, newly_added, skipped, pages }
+
+GET /api/jobs
+  query:
+    min_match     # filter by match_percent
+    cat_id        # maps to Cat_id
+    q             # search jobTitle / companyName
+    location      # maps to location
+    job_type      # maps to JobType
+    source        # all | premium | normal
+    is_recent     # maps to isRecent
+    is_applied    # maps to isApplied
+  default sort: match_percent desc
+
+PATCH /api/jobs/:id
+  body: { isApplied?: boolean }   # mark applied from UI
+
+GET /api/jobs/:id
+  → one job detail
+
+GET /
+  → web UI
+
+
+WEB UI
+------
+Page chrome:
+- Amount input (e.g. 1000) + Sync button
+- After sync: show report (fetched / newly_added / skipped)
+- Filters:
+  - match percent (min)
+  - BDJobs category id (cat_id)
+  - location, job type, source
+  - isRecent / isApplied toggles
+- Ranking list sorted by match_percent desc
+- Toggle isApplied per row
+- Card / title links to BDJobs detail by Jobid
+
+JOB CARD UI (follow BDJobs screenshots — required)
+--------------------------------------------------
+Reference images (copied into project):
+- assets/bdjobs-card-compact.jpg   → compact card (edu + experience, no logo)
+- assets/bdjobs-card-with-logo.jpg → card with company logo + short description
+
+Visual style (match screenshots):
+- White / soft light-blue gradient card
+- Light gray border, rounded corners (~8–10px), light shadow
+- Job title: bold, forest/dark green (~#2e7d32)
+- Company name: bold, dark gray/black, under title
+- Meta text + icons: medium gray
+- Sans-serif typography
+
+Card layout (compose from both refs):
+- Top row: title + company on left; company logo (logoUrl) on right when present
+- Optional short description snippet from jobContext / jobDescription (as in image #2)
+- Meta rows with small gray icons:
+  - pin      → location
+  - grad cap → eduRec (strip HTML, truncate)
+  - briefcase → experience (and/or salary if useful)
+- Bottom row: experience/salary left; "Deadline:" + calendar icon + deadline right
+
+App-only overlays on the same card (not in BDJobs screenshots):
+- match_percent badge (prominent)
+- match_reason (expand/collapse or subtitle)
+- flags: isRecent, isApplied (+ apply toggle)
+- source badge: premium | normal
+
+
+OUT OF SCOPE (v1)
+-----------------
+- Auth
+- Keyword/category BDJobs search filters on the API request itself
+- Auto-apply
+- Scheduled cron (can add later)
