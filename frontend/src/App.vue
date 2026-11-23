@@ -288,7 +288,9 @@
                 <rect x="3" y="7" width="18" height="13" rx="2" />
                 <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
               </svg>
-              <span>{{ job.experience || "—" }}</span>
+              <!-- <span v-html="job.experience"></span> -->
+              
+              <span :title="stripHtml(job.experience)">{{ stripHtml(job.experience) || "—" }}</span>
             </div>
             <div class="deadline">
               Deadline:
@@ -351,8 +353,8 @@ export default {
   data() {
     return {
       categories: jobCategories,
-      categoryId: "",
-      postedWithin: 1,
+      categoryId: "8",
+      postedWithin: 2,
       syncing: false,
       syncReport: "",
       listMeta: "",
