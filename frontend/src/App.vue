@@ -184,7 +184,7 @@
       <label>
         Removed
         <select v-model="filters.is_removed">
-          <option value="false">Active</option>
+          <option value="false">Not Removed</option>
           <option value="true">Removed</option>
           <option value="all">All</option>
         </select>
