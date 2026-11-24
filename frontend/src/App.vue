@@ -315,16 +315,16 @@
           <p v-if="job.match_reason" class="reason">{{ job.match_reason }}</p>
 
           <div class="card-actions">
-            <button type="button" class="secondary" @click="toggleApplied(job)">
+            <button type="button" class="secondary" @click="updateJobField(job, 'isApplied', !job.isApplied)">
               {{ job.isApplied ? "Mark not applied" : "Mark applied" }}
             </button>
-            <button type="button" class="secondary" @click="toggleSortListed(job)">
+            <button type="button" class="secondary" @click="updateJobField(job, 'isSortListed', !job.isSortListed)">
               {{ job.isSortListed ? "Remove shortlist" : "Shortlist" }}
             </button>
             <button
               type="button"
               :class="job.isRemoved ? 'secondary' : 'danger'"
-              @click="toggleRemoved(job)"
+              @click="updateJobField(job, 'isRemoved', !job.isRemoved)"
             >
               {{ job.isRemoved ? "Restore" : "Remove" }}
             </button>
@@ -734,56 +734,28 @@ export default {
       }
     },
 
-    async toggleApplied(job) {
-      const next = !job.isApplied;
+    async updateJobField(job, field, updatedValue) {
       try {
         const res = await fetch(
           `${apiBaseUrl}/api/jobs/${encodeURIComponent(job.Jobid)}`,
           {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isApplied: next }),
+            body: JSON.stringify({
+              [field]: updatedValue
+            }),
           }
         );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Update failed");
-        await this.reloadJobs();
-      } catch (err) {
-        alert(err.message);
-      }
-    },
 
-    async toggleRemoved(job) {
-      try {
-        const res = await fetch(
-          `${apiBaseUrl}/api/jobs/${encodeURIComponent(job.Jobid)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isRemoved: !job.isRemoved }),
-          }
-        );
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Remove update failed");
-        await this.reloadJobs();
-      } catch (err) {
-        alert(err.message);
-      }
-    },
 
-    async toggleSortListed(job) {
-      try {
-        const res = await fetch(
-          `${apiBaseUrl}/api/jobs/${encodeURIComponent(job.Jobid)}`,
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isSortListed: !job.isSortListed }),
-          }
-        );
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Shortlist update failed");
-        job.isSortListed = data.isSortListed;
+        if (!res.ok) {
+          throw new Error(data.error || "Update failed");
+        }
+
+        // Update the job status locally
+        job[field] = updatedValue;
+
       } catch (err) {
         alert(err.message);
       }
