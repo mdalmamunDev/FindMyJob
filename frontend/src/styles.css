@@ -4,9 +4,27 @@
   --muted: #666666;
   --border: #e0e0e0;
   --bg: #f3f6f9;
+  --surface: #ffffff;
+  --input-bg: #ffffff;
+  --subtle-bg: #eceff1;
   --card-bg: linear-gradient(180deg, #f7fbff 0%, #ffffff 55%);
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
   --pad-x: 0.85rem;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --green: #81c784;
+  --text: #e6edf3;
+  --muted: #a0acb8;
+  --border: #35414d;
+  --bg: #12171d;
+  --surface: #1b222a;
+  --input-bg: #141a21;
+  --subtle-bg: #29333d;
+  --card-bg: linear-gradient(180deg, #202a34 0%, #1a222a 55%);
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.24);
+  color-scheme: dark;
 }
 
 * {
@@ -29,7 +47,7 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 0.65rem var(--pad-x);
-  background: #fff;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 
@@ -64,7 +82,7 @@ body {
 
 .filters {
   padding: 0.55rem var(--pad-x);
-  background: #fff;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 
@@ -89,7 +107,7 @@ select {
   padding: 0.3rem 0.4rem;
   border: 1px solid var(--border);
   border-radius: 5px;
-  background: #fff;
+  background: var(--input-bg);
   color: var(--text);
   font-size: 0.8rem;
 }
@@ -122,6 +140,10 @@ button.secondary {
   margin: 0.45rem var(--pad-x);
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+.theme-toggle {
+  align-self: center;
 }
 
 .list-toolbar {
@@ -284,7 +306,7 @@ button.secondary {
   height: 48px;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--surface);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -347,6 +369,41 @@ button.secondary {
   color: #8d6e00;
 }
 
+:root[data-theme="dark"] .badge {
+  background: #263a2a;
+  color: #a5d6a7;
+}
+
+:root[data-theme="dark"] .badge.match {
+  background: #2e7d32;
+  color: #ffffff;
+}
+
+:root[data-theme="dark"] .badge.premium {
+  background: #49351f;
+  color: #ffcc80;
+}
+
+:root[data-theme="dark"] .badge.normal {
+  background: #29333d;
+  color: #c1ccd6;
+}
+
+:root[data-theme="dark"] .badge.recent {
+  background: #1f3a50;
+  color: #90caf9;
+}
+
+:root[data-theme="dark"] .badge.applied {
+  background: #3b2b45;
+  color: #ce93d8;
+}
+
+:root[data-theme="dark"] .badge.shortlisted {
+  background: #493e20;
+  color: #ffe082;
+}
+
 .reason {
   margin: 0.3rem 0 0;
   font-size: 0.68rem;
@@ -393,7 +450,7 @@ button.secondary {
   padding: 0.65rem 0.75rem;
   border-radius: 8px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 6px 18px rgba(16, 24, 40, 0.12);
 }
 
@@ -431,7 +488,7 @@ button.secondary {
 .toast-bar {
   height: 5px;
   border-radius: 999px;
-  background: #eceff1;
+  background: var(--subtle-bg);
   overflow: hidden;
 }
 

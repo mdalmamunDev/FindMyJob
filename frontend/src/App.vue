@@ -34,7 +34,17 @@
           {{ syncing ? "Syncing…" : "Sync" }}
         </button>
       </form>
-      <p class="last-sync">Last synced with BDJobs: {{ lastSyncLabel }}</p>
+      <div class="topbar">
+        <p class="last-sync">Last synced with BDJobs: {{ lastSyncLabel }}</p>
+        <button
+          class="theme-toggle secondary"
+          type="button"
+          :aria-pressed="theme === 'dark'"
+          @click="toggleTheme"
+        >
+          {{ theme === "dark" ? "☀" : "☾" }}
+        </button>
+      </div>
     </header>
 
     <p v-if="syncReport" class="sync-report">{{ syncReport }}</p>
@@ -353,6 +363,7 @@ export default {
   data() {
     return {
       categories: jobCategories,
+      theme: localStorage.getItem("findmyjob-theme") === "dark" ? "dark" : "light",
       categoryId: "8",
       postedWithin: 2,
       syncing: false,
@@ -431,11 +442,16 @@ export default {
     },
   },
   watch: {
+    theme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem("findmyjob-theme", theme);
+    },
     pageTitle(title) {
       document.title = title;
     },
   },
   mounted() {
+    document.documentElement.dataset.theme = this.theme;
     this.baseDocumentTitle = document.title;
     document.title = this.pageTitle;
     this.connectSocket();
@@ -466,6 +482,10 @@ export default {
   },
   methods: {
     stripHtml,
+
+    toggleTheme() {
+      this.theme = this.theme === "dark" ? "light" : "dark";
+    },
 
     connectSocket() {
       const apiOrigin = apiBaseUrl
