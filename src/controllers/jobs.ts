@@ -47,6 +47,19 @@ function buildFilter(input: Record<string, unknown>): Filter<JobDocument> {
     }
   }
 
+  const postedWithinDays =
+    input.posted_within !== undefined && input.posted_within !== ""
+      ? Number(input.posted_within)
+      : undefined;
+  if (
+    postedWithinDays !== undefined &&
+    Number.isInteger(postedWithinDays) &&
+    postedWithinDays > 0
+  ) {
+    const cutoff = new Date(Date.now() - postedWithinDays * 24 * 60 * 60 * 1000);
+    filter.publishDate = { $gte: cutoff.toISOString() };
+  }
+
   if (input.cat_id !== undefined && input.cat_id !== "") {
     const cat = Number(input.cat_id);
     if (Number.isFinite(cat)) {

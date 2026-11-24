@@ -18,7 +18,7 @@ FindMyJob is a personal job-discovery and matching app for BDJobs. It syncs job 
 - **Resume-based matching:** Scores new jobs against your resume using an Ollama model. Match scores and a short explanation are saved with each job.
 - **Detailed job data:** Fetches available job details, including skills and requirements, to enrich matching and job previews. Listing data is still used if details cannot be fetched.
 - **Live sync progress:** Shows the current job and sync counts in the app, and the browser tab title displays progress while syncing.
-- **Job discovery controls:** Search and filter by match score, category, location, job type, source, recent status, applied status, shortlist status, and removed status.
+- **Job discovery controls:** Search and filter by match score, posting age (rolling days), category, location, job type, source, recent status, applied status, shortlist status, and removed status.
 - **Sorting and infinite scroll:** Sort by match percentage, sync time, publish date, or first-seen date; additional results load as you scroll.
 - **Job tracking:** Mark jobs as applied, shortlist or unshortlist them, remove individual jobs, or bulk-remove all jobs matching the active filters.
 - **Theme toggle:** Switch between light and dark themes; your selection is saved in the browser.
@@ -127,7 +127,7 @@ npm run build:web
 - `GET /api/health` — API health check.
 - `GET /api/sync/status` — last successful sync time.
 - `POST /api/sync` — start a sync. JSON body accepts `categoryId` and `postedWithin` (a positive number of days; defaults to `1` on the backend). Returns `202` when started and `409` if a sync is already running.
-- `GET /api/jobs` — list and paginate jobs. Supports filters such as `min_match`, `max_match`, `cat_id`, `q`, `location`, `job_type`, `source`, `is_recent`, `is_applied`, `is_sort_listed`, and `is_removed`, plus `page`, `page_size`, `sort`, and `sort_direction`.
+- `GET /api/jobs` — list and paginate jobs. Supports filters such as `min_match`, `max_match`, `posted_within` (positive number of rolling days), `cat_id`, `q`, `location`, `job_type`, `source`, `is_recent`, `is_applied`, `is_sort_listed`, and `is_removed`, plus `page`, `page_size`, `sort`, and `sort_direction`.
 - `GET /api/jobs/:id` — retrieve a job by its BDJobs ID.
 - `PATCH /api/jobs/:id` — update `isApplied`, `isRemoved`, and/or `isSortListed`.
 - `POST /api/jobs/bulk-remove` — mark all jobs matching the provided `filters` as removed.

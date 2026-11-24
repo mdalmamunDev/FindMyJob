@@ -135,6 +135,16 @@
         <input v-model.number="filters.max_match" type="number" min="0" max="100" />
       </label>
       <label>
+        Posted within (days)
+        <input
+          v-model.number="filters.posted_within"
+          type="number"
+          min="1"
+          step="1"
+          placeholder="Any"
+        />
+      </label>
+      <label>
         Category
         <select v-model="filters.cat_id">
           <option value="">All categories</option>
@@ -394,6 +404,7 @@ export default {
       filters: {
         min_match: 0,
         max_match: "",
+        posted_within: "",
         cat_id: "",
         q: "",
         location: "",
@@ -407,6 +418,7 @@ export default {
       appliedFilters: {
         min_match: 0,
         max_match: "",
+        posted_within: "",
         cat_id: "",
         q: "",
         location: "",
@@ -605,6 +617,7 @@ export default {
       const keys = [
         "min_match",
         "max_match",
+        "posted_within",
         "cat_id",
         "q",
         "location",
