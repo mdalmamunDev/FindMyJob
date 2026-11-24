@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import http from "node:http";
+import { startAutoSync } from "./autoSync.js";
 import { config } from "./config.js";
 import { closeDb, connectDb } from "./db.js";
 import { jobsRouter } from "./routes/jobs.js";
@@ -30,6 +31,8 @@ async function main() {
   const server = http.createServer(app);
   attachWebSocket(server);
 
+  const autoSyncTask = startAutoSync();
+
   server.listen(config.port, () => {
     console.log(`API running at http://localhost:${config.port}`);
     console.log(`WebSocket at ws://localhost:${config.port}/ws`);
@@ -37,6 +40,7 @@ async function main() {
   });
 
   const shutdown = async () => {
+    autoSyncTask?.stop();
     server.close();
     await closeDb();
     process.exit(0);

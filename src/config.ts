@@ -18,6 +18,32 @@ function optionalInt(name: string, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
 
+function optionalInteger(name: string): number | undefined {
+  const raw = process.env[name]?.trim();
+  if (!raw) return undefined;
+  const value = Number(raw);
+  if (!Number.isInteger(value)) {
+    throw new Error(`${name} must be a whole number`);
+  }
+  return value;
+}
+
+const autoSyncHour = optionalInteger("AUTO_SYNC_HOUR");
+if (autoSyncHour !== undefined && (autoSyncHour < 1 || autoSyncHour > 24)) {
+  throw new Error("AUTO_SYNC_HOUR must be between 1 and 24");
+}
+
+const autoSyncCategoryId = optionalInteger("AUTO_SYNC_CATEGORY_ID");
+if (autoSyncCategoryId === 0) {
+  throw new Error("AUTO_SYNC_CATEGORY_ID must be a non-zero whole number");
+}
+
+const autoSyncPostedWithinDay =
+  optionalInteger("AUTO_SYNC_POSTED_WITHIN_DAY") ?? 1;
+if (autoSyncPostedWithinDay < 1) {
+  throw new Error("AUTO_SYNC_POSTED_WITHIN_DAY must be a positive whole number");
+}
+
 export const config = {
   port: optionalInt("PORT", 3000),
   rpp: optionalInt("RPP", 50),
@@ -32,4 +58,7 @@ export const config = {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean),
+  autoSyncHour,
+  autoSyncCategoryId,
+  autoSyncPostedWithinDay,
 };

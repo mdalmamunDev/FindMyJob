@@ -84,9 +84,13 @@ FindMyJob is a personal job-discovery and matching app for BDJobs. It syncs job 
 | `RPP` | No | `50` | Number of BDJobs results requested per page. |
 | `MAX_PAGES` | No | `50` | Maximum number of BDJobs pages to process per sync. |
 | `FRONTEND_ORIGINS` | No | `http://localhost:5173` | Comma-separated list of allowed frontend origins. |
+| `AUTO_SYNC_HOUR` | No | Disabled | Run a cron sync every N hours, at the corresponding local clock-hour boundaries. Set to `2` to run at 00:00, 02:00, 04:00, and so on. |
+| `AUTO_SYNC_CATEGORY_ID` | No | No category filter | BDJobs category used by scheduled syncs. |
+| `AUTO_SYNC_POSTED_WITHIN_DAY` | No | `1` | Posted-within day range used by scheduled syncs. |
 | `VITE_API_BASE_URL` | No | Empty | Frontend API origin; leave empty to use same-origin/Vite proxy behavior. |
 
 The backend reads `.env` from the project root. `.env` is ignored by Git; use `.env.example` as a starting point.
+Automatic sync does not run immediately on startup. It runs on the configured cron schedule using the category and day range from `.env`; a scheduled run is skipped if a manual or other sync is already in progress.
 
 ## Run locally
 
