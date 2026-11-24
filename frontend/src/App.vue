@@ -356,6 +356,7 @@ export default {
       categoryId: "8",
       postedWithin: 2,
       syncing: false,
+      baseDocumentTitle: "",
       syncReport: "",
       listMeta: "",
       lastSyncAt: null,
@@ -420,8 +421,23 @@ export default {
         Math.round((this.progressCurrent / this.progressTotal) * 100)
       );
     },
+    pageTitle() {
+      const baseTitle = this.baseDocumentTitle || "FindMyJob";
+      if (!this.syncing) return baseTitle;
+      const progress = this.progressTotal
+        ? `${this.progressCurrent}/${this.progressTotal}`
+        : `${this.progressCurrent}`;
+      return `(${progress}) ${baseTitle}`;
+    },
+  },
+  watch: {
+    pageTitle(title) {
+      document.title = title;
+    },
   },
   mounted() {
+    this.baseDocumentTitle = document.title;
+    document.title = this.pageTitle;
     this.connectSocket();
     this.loadMoreObserver = new IntersectionObserver(
       (entries) => {
@@ -438,6 +454,7 @@ export default {
     this.loadSyncStatus();
   },
   beforeDestroy() {
+    document.title = this.baseDocumentTitle || "FindMyJob";
     if (this.loadMoreObserver) {
       this.loadMoreObserver.disconnect();
       this.loadMoreObserver = null;
