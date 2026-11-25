@@ -4,6 +4,7 @@ import type { PastedJobModel, TPastedJob } from "./pasted-jobs.interface.js";
 const pastedJobSchema = new Schema<TPastedJob, PastedJobModel>(
   {
     pastedText: { type: String, required: true },
+    sourceUrl: String,
     status: {
       type: String,
       enum: ["queued", "processing", "completed", "failed"],
@@ -38,6 +39,8 @@ const pastedJobSchema = new Schema<TPastedJob, PastedJobModel>(
       content: String,
     },
     isApplied: { type: Boolean, default: false, index: true },
+    isRemoved: { type: Boolean, default: false, index: true },
+    isSortListed: { type: Boolean, default: false, index: true },
   },
   {
     collection: "pasted_jobs",

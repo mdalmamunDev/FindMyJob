@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 import PastedJob from "./pasted-jobs.model.js";
 import { processPastedJob } from "./pasted-jobs.service.js";
+import { broadcast } from "../../shared/websocket.js";
 import {
   getPastedJobsRedis,
   pastedJobsQueueName,
@@ -28,6 +29,13 @@ export function startPastedJobsWorker(): void {
             },
           }
         ).exec();
+        broadcast({
+          type: "pasted_job_updated",
+          id: task.data.pastedJobId,
+          status: isFinalAttempt ? "failed" : "queued",
+          stage: isFinalAttempt ? "failed" : "retrying",
+          error: message,
+        });
         throw error;
       }
     },

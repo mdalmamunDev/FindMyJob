@@ -146,10 +146,11 @@ npm run build:web
 - `POST /api/sync` — start a sync. JSON body accepts `categoryId` and `postedWithin` (a positive number of days; defaults to `1` on the backend). Returns `202` when started and `409` if a sync is already running.
 - `GET /api/jobs` — list and paginate jobs. Supports filters such as `min_match`, `max_match`, `posted_within` (positive number of rolling days), `cat_id`, `q`, `location`, `job_type`, `source`, `is_recent`, `is_applied`, `is_sort_listed`, and `is_removed`, plus `page`, `page_size`, `sort`, and `sort_direction`.
 - `GET /api/jobs/:id` — retrieve a job by its BDJobs ID.
-- `POST /api/pasted-jobs` — save and enqueue a pasted job. JSON body: `{ "text": "..." }` (20–30,000 characters); returns `202` immediately with a queue ID.
+- `POST /api/pasted-jobs` — save and enqueue a pasted job. JSON body: `{ "text": "...", "sourceUrl": "https://..." }`; `sourceUrl` is optional and must be HTTP(S). Text must be 20–30,000 characters. Returns `202` immediately with a queue ID.
 - `GET /api/pasted-jobs` — list pasted jobs separately, including queued/processing/completed/failed status and extracted details.
-- `GET /api/pasted-jobs/:id/status` — lightweight queue status check for a pasted job.
 - `PATCH /api/pasted-jobs/:id/email` — save edits to the generated email draft (`to`, `subject`, and `content`); does not send the email.
+- `PATCH /api/pasted-jobs/:id` — update pasted-job tracking flags: `isApplied`, `isSortListed`, and/or `isRemoved`.
+- `ws://localhost:3000/ws` — broadcasts `pasted_job_updated` events when pasted-job stages, extraction, scoring, or email-draft status changes; reconnecting clients reload the current list.
 - `PATCH /api/jobs/:id` — update `isApplied`, `isRemoved`, and/or `isSortListed`.
 - `POST /api/jobs/bulk-remove` — mark all jobs matching the provided `filters` as removed.
 - `ws://localhost:3000/ws` — live sync progress events for the frontend.

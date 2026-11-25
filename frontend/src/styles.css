@@ -193,6 +193,17 @@ button.secondary {
   max-width: none;
 }
 
+.paste-job-form > label {
+  margin-bottom: 0.55rem;
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.paste-job-form > label input {
+  width: 100%;
+  max-width: none;
+}
+
 .paste-job-submit,
 .pasted-list-meta,
 .pasted-card-header,
@@ -249,6 +260,20 @@ button.secondary {
   flex: 0 0 auto;
   color: var(--muted);
   font-size: 0.75rem;
+}
+
+.pasted-source-link {
+  margin: 0.65rem 0;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+
+.pasted-source-link a {
+  color: var(--green);
+}
+
+.pasted-card-actions {
+  margin-top: 0.8rem;
 }
 
 .pasted-details {

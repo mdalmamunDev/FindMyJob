@@ -15,6 +15,7 @@ import type {
   PastedJobEmailDraft,
   TPastedJob,
 } from "./pasted-jobs.interface.js";
+import { broadcast } from "../../shared/websocket.js";
 
 export interface PastedJobListResult {
   count: number;
@@ -25,9 +26,14 @@ export interface PastedJobListResult {
 }
 
 export async function createPastedJob(
-  pastedText: string
+  pastedText: string,
+  sourceUrl?: string
 ): Promise<TPastedJob> {
-  const job = await PastedJob.create({ pastedText, status: "queued" });
+  const job = await PastedJob.create({
+    pastedText,
+    ...(sourceUrl ? { sourceUrl } : {}),
+    status: "queued",
+  });
   return job.toObject();
 }
 
@@ -36,6 +42,11 @@ export async function updatePastedJobStatus(
   update: { status: "queued" | "processing" | "completed" | "failed"; stage: string; error: string }
 ): Promise<void> {
   await PastedJob.updateOne({ _id: id }, { $set: update }).exec();
+  broadcast({
+    type: "pasted_job_updated",
+    id,
+    ...update,
+  });
 }
 
 export async function listPastedJobs(
@@ -57,15 +68,6 @@ export async function listPastedJobs(
     .lean()
     .exec();
   return { count, page, pageSize, pageCount, jobs };
-}
-
-export async function getPastedJobStatus(
-  id: string
-): Promise<Pick<TPastedJob, "_id" | "status" | "stage" | "error"> | null> {
-  return PastedJob.findById(id)
-    .select({ status: 1, stage: 1, error: 1 })
-    .lean()
-    .exec();
 }
 
 function toScoringJob(
@@ -133,6 +135,13 @@ export async function processPastedJob(id: string): Promise<void> {
       { _id: id },
       { $set: { status: "processing", stage, error: "" } }
     ).exec();
+    broadcast({
+      type: "pasted_job_updated",
+      id,
+      status: "processing",
+      stage,
+      error: "",
+    });
   };
 
   await setStage("extracting details");
@@ -152,6 +161,13 @@ export async function processPastedJob(id: string): Promise<void> {
       },
     }
   ).exec();
+  broadcast({
+    type: "pasted_job_updated",
+    id,
+    status: "processing",
+    extracted,
+    emailDraft: { to: applicationEmail, subject: "", content: "" },
+  });
 
   await setStage("scoring against your resume");
   const resume = await loadResume();
@@ -164,6 +180,13 @@ export async function processPastedJob(id: string): Promise<void> {
     { _id: id },
     { $set: { match_percent: score.match_percent, match_reason: score.reason } }
   ).exec();
+  broadcast({
+    type: "pasted_job_updated",
+    id,
+    status: "processing",
+    match_percent: score.match_percent,
+    match_reason: score.reason,
+  });
 
   await setStage("writing application email");
   const emailDraft: PastedJobEmailDraft = await generatePastedJobEmail(
@@ -183,6 +206,13 @@ export async function processPastedJob(id: string): Promise<void> {
       },
     }
   ).exec();
+  broadcast({
+    type: "pasted_job_updated",
+    id,
+    status: "completed",
+    stage: "completed",
+    error: "",
+  });
 }
 
 export async function updatePastedJobEmail(
@@ -195,5 +225,38 @@ export async function updatePastedJobEmail(
     { new: true, runValidators: true }
   )
     .lean()
+    .exec()
+    .then((job) => {
+      if (job) {
+        broadcast({
+          type: "pasted_job_updated",
+          id,
+          emailDraftUpdated: true,
+        });
+      }
+      return job;
+    });
+}
+
+export async function updatePastedJob(
+  id: string,
+  updates: Partial<
+    Pick<TPastedJob, "isApplied" | "isRemoved" | "isSortListed">
+  >
+): Promise<TPastedJob | null> {
+  const job = await PastedJob.findOneAndUpdate(
+    { _id: id },
+    { $set: updates },
+    { new: true, runValidators: true }
+  )
+    .lean()
     .exec();
+  if (job) {
+    broadcast({
+      type: "pasted_job_updated",
+      id,
+      ...updates,
+    });
+  }
+  return job;
 }

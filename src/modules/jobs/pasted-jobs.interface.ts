@@ -34,6 +34,7 @@ export type PastedJobStatus =
 export interface TPastedJob {
   _id: Types.ObjectId;
   pastedText: string;
+  sourceUrl?: string;
   status: PastedJobStatus;
   stage?: string;
   error?: string;
@@ -44,6 +45,8 @@ export interface TPastedJob {
   createdAt: Date;
   updatedAt: Date;
   isApplied: boolean;
+  isRemoved: boolean;
+  isSortListed: boolean;
 }
 
 export type PastedJobModel = Model<TPastedJob>;
