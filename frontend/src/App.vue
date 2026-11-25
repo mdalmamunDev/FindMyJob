@@ -3,7 +3,7 @@
     <header class="topbar">
       <div class="brand">
         <h1>FindMyJob</h1>
-        <p>BDJobs ranked by resume match (Ollama)</p>
+        <p>Jobs ranked by resume match (Ollama)</p>
       </div>
 
       <form class="sync-form" @submit.prevent="runSync">
@@ -47,6 +47,156 @@
       </div>
     </header>
 
+    <nav class="source-tabs" aria-label="Job sources">
+      <button
+        type="button"
+        :class="{ active: activeView === 'bdjobs' }"
+        @click="setActiveView('bdjobs')"
+      >
+        BDJobs
+      </button>
+      <button
+        type="button"
+        :class="{ active: activeView === 'pasted' }"
+        @click="setActiveView('pasted')"
+      >
+        Pasted jobs <span v-if="pastedJobCount">({{ pastedJobCount }})</span>
+      </button>
+    </nav>
+
+    <section v-if="activeView === 'pasted'" class="pasted-view">
+      <form class="paste-job-form" @submit.prevent="submitPastedJob">
+        <h2>Paste a job listing</h2>
+        <p>It will be queued immediately. Extraction, resume matching, and email drafting happen in the background.</p>
+        <textarea
+          v-model="pastedJobText"
+          rows="6"
+          maxlength="30000"
+          placeholder="Paste the complete job posting, including application instructions…"
+          required
+        ></textarea>
+        <div class="paste-job-submit">
+          <span role="status">{{ pastedReport }}</span>
+          <button type="submit" :disabled="pastedSubmitting || pastedJobText.trim().length < 20">
+            {{ pastedSubmitting ? "Adding to queue…" : "Queue pasted job" }}
+          </button>
+        </div>
+      </form>
+
+      <p class="pasted-list-meta">
+        {{ pastedJobs.length }} of {{ pastedJobCount }} pasted jobs
+        <button type="button" class="secondary" @click="refreshPastedJobs">
+          Refresh
+        </button>
+      </p>
+      <main class="pasted-job-list">
+        <p v-if="pastedLoading && !pastedJobs.length" class="empty">Loading pasted jobs…</p>
+        <p v-else-if="!pastedJobs.length" class="empty">
+          No pasted jobs yet. Paste a listing above to get started.
+        </p>
+        <article
+          v-for="job in pastedJobs"
+          :key="job._id"
+          class="pasted-job-card"
+        >
+          <header class="pasted-card-header">
+            <div>
+              <div class="badges">
+                <span v-if="job.match_percent !== undefined" class="badge match">
+                  {{ job.match_percent }}% match
+                </span>
+                <span class="badge" :class="`status-${job.status}`">
+                  {{ job.stage || job.status }}
+                </span>
+              </div>
+              <h2>{{ job.extracted?.title || "Extracting job details…" }}</h2>
+              <p class="company">{{ job.extracted?.company || "Company not extracted yet" }}</p>
+            </div>
+            <span class="pasted-created">Added {{ displayDate(job.createdAt) }}</span>
+          </header>
+
+          <p v-if="job.error" class="pasted-error" role="alert">
+            Processing error: {{ job.error }}
+          </p>
+          <p v-if="job.match_reason" class="pasted-match-reason">
+            <b>Resume match:</b> {{ job.match_reason }}
+          </p>
+
+          <div v-if="job.extracted" class="pasted-details">
+            <p><b>Location:</b> {{ job.extracted.location || "—" }}</p>
+            <p><b>Published:</b> {{ displayDate(job.extracted.publishDate) }}</p>
+            <p><b>Deadline:</b> {{ displayDate(job.extracted.deadline) }}</p>
+            <p><b>Job type:</b> {{ job.extracted.jobType || "—" }}</p>
+            <p><b>Workplace:</b> {{ job.extracted.workplace || "—" }}</p>
+            <p><b>Experience:</b> {{ job.extracted.experience || "—" }}</p>
+            <p><b>Education:</b> {{ job.extracted.education || "—" }}</p>
+            <p><b>Salary:</b> {{ job.extracted.salary || "—" }}</p>
+            <p><b>Skills:</b> {{ job.extracted.skills || "—" }}</p>
+            <p><b>Requirements:</b> {{ job.extracted.requirements || "—" }}</p>
+            <p><b>Apply instructions:</b> {{ job.extracted.applicationInstructions || "—" }}</p>
+            <p>
+              <b>Website:</b>
+              <a v-if="websiteUrl(job.extracted.website)" :href="websiteUrl(job.extracted.website)" target="_blank" rel="noopener noreferrer">
+                {{ job.extracted.website }}
+              </a>
+              <span v-else>—</span>
+            </p>
+            <section class="pasted-description">
+              <h3>Job description</h3>
+              <p>{{ job.extracted.description || "—" }}</p>
+            </section>
+          </div>
+
+          <section
+            v-if="job.emailDraft && (job.status === 'completed' || job.status === 'failed')"
+            class="pasted-email"
+          >
+            <h3>Application email draft <span>(not sent)</span></h3>
+            <form @submit.prevent="savePastedEmail(job)">
+              <label>
+                To
+                <input v-model="job.emailDraft.to" type="email" placeholder="Hiring email address" />
+              </label>
+              <label>
+                Subject
+                <input v-model="job.emailDraft.subject" type="text" required />
+              </label>
+              <label>
+                Content
+                <textarea v-model="job.emailDraft.content" rows="9" required></textarea>
+              </label>
+              <div class="pasted-email-actions">
+                <button type="submit" :disabled="job.emailSaving">
+                  {{ job.emailSaving ? "Saving…" : "Save email draft" }}
+                </button>
+                <button type="button" class="secondary" @click="copyPastedEmail(job)">
+                  Copy email
+                </button>
+                <span v-if="job.emailReport" role="status">{{ job.emailReport }}</span>
+              </div>
+            </form>
+          </section>
+
+          <details class="pasted-source">
+            <summary>Original pasted listing</summary>
+            <pre>{{ job.pastedText }}</pre>
+          </details>
+        </article>
+      </main>
+      <div class="pasted-pagination">
+        <button
+          v-if="pastedPage < pastedPageCount"
+          type="button"
+          class="secondary"
+          :disabled="pastedLoading"
+          @click="loadMorePastedJobs"
+        >
+          {{ pastedLoading ? "Loading…" : "Load more pasted jobs" }}
+        </button>
+      </div>
+    </section>
+
+    <div v-show="activeView === 'bdjobs'">
     <p v-if="syncReport" class="sync-report">{{ syncReport }}</p>
 
     <aside
@@ -353,6 +503,7 @@
     <p v-else-if="jobs.length && !hasMore" class="pagination-status">
       You’ve reached the end of the list.
     </p>
+    </div>
   </div>
 </template>
 
@@ -373,6 +524,19 @@ export default {
   data() {
     return {
       categories: jobCategories,
+      activeView: "bdjobs",
+      pastedJobText: "",
+      pastedSubmitting: false,
+      pastedReport: "",
+      pastedJobs: [],
+      pastedJobCount: 0,
+      pastedPage: 1,
+      pastedPageCount: 0,
+      pastedLoading: false,
+      pastedRequestId: 0,
+      pastedQueuePoll: null,
+      pastedRefreshInProgress: false,
+      pastedStatusPollInProgress: false,
       theme: localStorage.getItem("findmyjob-theme") === "dark" ? "dark" : "light",
       categoryId: "8",
       postedWithin: 2,
@@ -480,6 +644,7 @@ export default {
     }
     this.loadJobs();
     this.loadSyncStatus();
+    this.refreshPastedJobs();
   },
   beforeDestroy() {
     document.title = this.baseDocumentTitle || "FindMyJob";
@@ -491,9 +656,18 @@ export default {
       this.socket.close();
       this.socket = null;
     }
+    if (this.pastedQueuePoll) {
+      clearInterval(this.pastedQueuePoll);
+      this.pastedQueuePoll = null;
+    }
   },
   methods: {
     stripHtml,
+
+    setActiveView(view) {
+      this.activeView = view;
+      if (view === "pasted") this.refreshPastedJobs();
+    },
 
     toggleTheme() {
       this.theme = this.theme === "dark" ? "light" : "dark";
@@ -610,6 +784,176 @@ export default {
       if (!value) return "—";
       const date = new Date(value);
       return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+    },
+
+    websiteUrl(value) {
+      if (!value) return "";
+      try {
+        const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+        return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+      } catch {
+        return "";
+      }
+    },
+
+    async submitPastedJob() {
+      this.pastedSubmitting = true;
+      this.pastedReport = "";
+      try {
+        const response = await fetch(`${apiBaseUrl}/api/pasted-jobs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: this.pastedJobText }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not queue pasted job");
+        this.pastedJobText = "";
+        this.pastedReport = `Added to the processing queue (${data.id})`;
+        await this.refreshPastedJobs();
+      } catch (error) {
+        this.pastedReport = error.message;
+      } finally {
+        this.pastedSubmitting = false;
+      }
+    },
+
+    async refreshPastedJobs() {
+      if (this.pastedRefreshInProgress) return;
+      this.pastedRefreshInProgress = true;
+      const requestId = ++this.pastedRequestId;
+      try {
+        const response = await fetch(
+          `${apiBaseUrl}/api/pasted-jobs?page=1&page_size=50`
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load pasted jobs");
+        if (requestId !== this.pastedRequestId) return;
+
+        const previousJobs = new Map(
+          this.pastedJobs.map((job) => [String(job._id), job])
+        );
+        const latestJobs = (data.jobs || []).map((job) => ({
+          ...previousJobs.get(String(job._id)),
+          ...job,
+        }));
+        const latestIds = new Set(latestJobs.map((job) => String(job._id)));
+        this.pastedJobs = latestJobs.concat(
+          this.pastedJobs.filter((job) => !latestIds.has(String(job._id)))
+        );
+        this.pastedJobCount = data.count;
+        this.pastedPage = data.page;
+        this.pastedPageCount = data.pageCount;
+        this.syncPastedJobPolling();
+      } catch (error) {
+        this.pastedReport = error.message;
+      } finally {
+        this.pastedRefreshInProgress = false;
+      }
+    },
+
+    async loadMorePastedJobs() {
+      if (this.pastedLoading || this.pastedPage >= this.pastedPageCount) return;
+      this.pastedLoading = true;
+      try {
+        const page = this.pastedPage + 1;
+        const response = await fetch(
+          `${apiBaseUrl}/api/pasted-jobs?page=${page}&page_size=50`
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not load more pasted jobs");
+        const existingIds = new Set(this.pastedJobs.map((job) => String(job._id)));
+        this.pastedJobs = this.pastedJobs.concat(
+          (data.jobs || []).filter((job) => !existingIds.has(String(job._id)))
+        );
+        this.pastedPage = data.page;
+        this.pastedPageCount = data.pageCount;
+      } catch (error) {
+        this.pastedReport = error.message;
+      } finally {
+        this.pastedLoading = false;
+      }
+    },
+
+    syncPastedJobPolling() {
+      const hasQueuedJobs = this.pastedJobs.some(
+        (job) => job.status === "queued" || job.status === "processing"
+      );
+      if (hasQueuedJobs && !this.pastedQueuePoll) {
+        this.pastedQueuePoll = setInterval(() => {
+          this.pollPastedJobStatuses();
+        }, 2500);
+      } else if (!hasQueuedJobs && this.pastedQueuePoll) {
+        clearInterval(this.pastedQueuePoll);
+        this.pastedQueuePoll = null;
+      }
+    },
+
+    async pollPastedJobStatuses() {
+      if (this.pastedStatusPollInProgress) return;
+      this.pastedStatusPollInProgress = true;
+      let shouldRefreshList = false;
+      try {
+        const pending = this.pastedJobs.filter(
+          (job) => job.status === "queued" || job.status === "processing"
+        );
+        const statuses = await Promise.all(
+          pending.map(async (job) => {
+            const response = await fetch(
+              `${apiBaseUrl}/api/pasted-jobs/${encodeURIComponent(job._id)}/status`
+            );
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Could not check queue status");
+            return { job, data };
+          })
+        );
+        statuses.forEach(({ job, data }) => {
+          if (job.status !== data.status) shouldRefreshList = true;
+          this.$set(job, "status", data.status);
+          this.$set(job, "stage", data.stage);
+          this.$set(job, "error", data.error);
+        });
+        if (shouldRefreshList) await this.refreshPastedJobs();
+        else this.syncPastedJobPolling();
+      } catch (error) {
+        this.pastedReport = error.message;
+      } finally {
+        this.pastedStatusPollInProgress = false;
+      }
+    },
+
+    async savePastedEmail(job) {
+      this.$set(job, "emailSaving", true);
+      this.$set(job, "emailReport", "");
+      try {
+        const response = await fetch(
+          `${apiBaseUrl}/api/pasted-jobs/${encodeURIComponent(job._id)}/email`,
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(job.emailDraft),
+          }
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not save email draft");
+        this.$set(job, "emailDraft", data.emailDraft);
+        this.$set(job, "emailReport", "Draft saved");
+      } catch (error) {
+        this.$set(job, "emailReport", error.message);
+      } finally {
+        this.$set(job, "emailSaving", false);
+      }
+    },
+
+    async copyPastedEmail(job) {
+      try {
+        const draft = job.emailDraft;
+        await navigator.clipboard.writeText(
+          `To: ${draft.to}\nSubject: ${draft.subject}\n\n${draft.content}`
+        );
+        this.$set(job, "emailReport", "Email copied");
+      } catch (error) {
+        this.$set(job, "emailReport", `Could not copy email: ${error.message}`);
+      }
     },
 
     filterParams() {

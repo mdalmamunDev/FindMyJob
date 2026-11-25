@@ -7,10 +7,22 @@ import {
 } from "./config/database.js";
 import { startAutoSync } from "./modules/sync/sync.scheduler.js";
 import { attachWebSocket } from "./shared/websocket.js";
+import {
+  closePastedJobsQueue,
+  recoverQueuedPastedJobs,
+  startPastedJobsQueue,
+} from "./modules/jobs/pasted-jobs.queue.js";
+import {
+  closePastedJobsWorker,
+  startPastedJobsWorker,
+} from "./modules/jobs/pasted-jobs.worker.js";
 
 async function main(): Promise<void> {
   await connectDatabase();
   console.log("Connected to MongoDB");
+  await startPastedJobsQueue();
+  await recoverQueuedPastedJobs();
+  startPastedJobsWorker();
 
   const server = http.createServer(app);
   attachWebSocket(server);
@@ -25,6 +37,8 @@ async function main(): Promise<void> {
   const shutdown = async () => {
     autoSyncTask?.stop();
     server.close();
+    await closePastedJobsWorker();
+    await closePastedJobsQueue();
     await disconnectDatabase();
     process.exit(0);
   };
