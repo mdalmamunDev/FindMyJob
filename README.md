@@ -1,6 +1,6 @@
 # FindMyJob
 
-FindMyJob is a personal job-discovery and matching app for BDJobs and pasted listings. It syncs BDJobs listings and accepts jobs copied from other platforms. A local Ollama model extracts details, compares jobs against your resume, and drafts application emails. BDJobs jobs and pasted jobs are stored separately in MongoDB through Mongoose.
+FindMyJob is a personal job-discovery and matching app for BDJobs and pasted listings. It syncs BDJobs listings and accepts jobs copied from other platforms. Google Gemini extracts details, compares jobs against your resume, and drafts application emails. BDJobs jobs and pasted jobs are stored separately in MongoDB through Mongoose.
 
 ## Previews
 
@@ -17,7 +17,7 @@ FindMyJob is a personal job-discovery and matching app for BDJobs and pasted lis
 - **BDJobs sync:** Sync listings by category and posted-within days. The category and day range are selected in the interface.
 - **Pasted jobs:** Paste a listing in its own frontend view. BullMQ queues extraction, resume matching, and application-email drafting so the form returns immediately while processing continues in the background.
 - **Editable email drafts:** Pasted job cards display the extracted listing details and an editable `To`, `Subject`, and `Content` form. Drafts can be saved or copied and are never sent automatically.
-- **Resume-based matching:** Scores new jobs against your resume using an Ollama model. Match scores and a short explanation are saved with each job.
+- **Resume-based matching:** Scores new jobs against your resume using Google Gemini. Match scores and a short explanation are saved with each job.
 - **Detailed job data:** Fetches available job details, including skills and requirements, to enrich matching and job previews. Listing data is still used if details cannot be fetched.
 - **Live sync progress:** Shows the current job and sync counts in the app, and the browser tab title displays progress while syncing.
 - **Job discovery controls:** Search and filter by match score, posting age (rolling days), category, location, job type, source, recent status, applied status, shortlist status, and removed status.
@@ -31,7 +31,7 @@ FindMyJob is a personal job-discovery and matching app for BDJobs and pasted lis
 - Node.js 18 or newer and npm
 - MongoDB connection string (for example, a MongoDB Atlas cluster)
 - Redis server/connection for the BullMQ pasted-job queue
-- [Ollama](https://ollama.com/) running locally or at a reachable URL, with a model pulled
+- A Google Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
 - A resume saved as `RESUME.md` in the project root
 
 ## Setup
@@ -58,13 +58,7 @@ FindMyJob is a personal job-discovery and matching app for BDJobs and pasted lis
 
 4. Create `RESUME.md` in the project root and add the resume text you want the matcher to use. Keep personal information private and do not commit your resume.
 
-5. Install and start Ollama, then pull a model. For example:
-
-   ```powershell
-   ollama pull qwen3:14b
-   ```
-
-   Set `OLLAMA_MODEL` in `.env` to the exact model name shown by `ollama list`.
+5. Add your Gemini API key to the backend `.env` as `GEMINI_API_KEY`. Keep it out of frontend environment variables and source control.
 
 6. Optionally configure the frontend API origin by creating `frontend/.env`:
 
@@ -82,8 +76,8 @@ FindMyJob is a personal job-discovery and matching app for BDJobs and pasted lis
 | `BDJOBS_GET_JOB_DETAILS_URL` | Yes | — | BDJobs job-details API URL/prefix used with a job ID. |
 | `MONGODB_URL` | Yes | — | MongoDB connection string. |
 | `QUEUE_REDIS_URL` | No | `redis://127.0.0.1:6379` | Redis connection used by the BullMQ pasted-job queue. Redis must be reachable before the API starts. |
-| `OLLAMA_BASE_URL` | No | `http://127.0.0.1:11434` | Ollama server URL. |
-| `OLLAMA_MODEL` | No | `llama3.2` | Model name to use for matching. Ensure the model is installed in Ollama. |
+| `GEMINI_API_KEY` | Yes | — | Google Gemini API key. Keep it private and backend-only. |
+| `GEMINI_MODEL` | No | `gemini-2.5-flash` | Gemini model used for extraction, matching, and email drafts. |
 | `PORT` | No | `3000` | API server port. |
 | `RPP` | No | `50` | Number of BDJobs results requested per page. |
 | `MAX_PAGES` | No | `50` | Maximum number of BDJobs pages to process per sync. |
@@ -123,7 +117,7 @@ Start the frontend in another terminal:
 npm run dev --prefix frontend
 ```
 
-Open [http://localhost:5173](http://localhost:5173). The API runs at `http://localhost:3000` by default. MongoDB and Ollama must be reachable before syncing jobs.
+Open [http://localhost:5173](http://localhost:5173). The API runs at `http://localhost:3000` by default. MongoDB, Redis, and Gemini API access must be available before processing jobs.
 
 ## Build
 
@@ -157,4 +151,4 @@ npm run build:web
 
 ## How matching works
 
-For each new listing, the backend attempts to fetch its details and compares the available job information with `RESUME.md` using the configured Ollama model. It stores a 0–100 match score, a short reason, the original listing, and available details. Existing job IDs are not scored again during sync.
+For each new listing, the backend attempts to fetch its details and compares the available job information with `RESUME.md` using the configured Gemini model. It stores a 0–100 match score, a short reason, the original listing, and available details. Pasted job extraction, resume matching, and email drafting also use Gemini. There is no Ollama fallback. Existing job IDs are not scored again during sync.

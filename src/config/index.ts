@@ -52,8 +52,8 @@ export const config = {
   bdjobsJobDetailsUrl: required("BDJOBS_GET_JOB_DETAILS_URL"),
   mongodbUrl: required("MONGODB_URL"),
   queueRedisUrl: (process.env.QUEUE_REDIS_URL || "redis://127.0.0.1:6379").trim(),
-  ollamaBaseUrl: (process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434").trim(),
-  ollamaModel: (process.env.OLLAMA_MODEL || "llama3.2").trim(),
+  geminiApiKey: required("GEMINI_API_KEY"),
+  geminiModel: (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim(),
   resumePath: path.resolve(process.cwd(), "RESUME.md"),
   frontendOrigins: (process.env.FRONTEND_ORIGINS || "http://localhost:5173")
     .split(",")

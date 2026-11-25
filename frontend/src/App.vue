@@ -3,7 +3,7 @@
     <header class="topbar">
       <div class="brand">
         <h1>FindMyJob</h1>
-        <p>Jobs ranked by resume match (Ollama)</p>
+        <p>Jobs ranked by resume match (Gemini)</p>
       </div>
 
       <form class="sync-form" @submit.prevent="runSync">

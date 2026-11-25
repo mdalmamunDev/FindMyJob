@@ -2,7 +2,7 @@
   "name": "findmyjob",
   "version": "1.0.0",
   "private": true,
-  "description": "BDJobs + Ollama job matcher",
+  "description": "BDJobs + Gemini job matcher",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",

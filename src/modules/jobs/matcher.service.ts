@@ -40,24 +40,40 @@ function stringValue(data: Record<string, unknown>, key: string): string {
   return typeof data[key] === "string" ? (data[key] as string).trim() : "";
 }
 
-async function generateJson(prompt: string): Promise<Record<string, unknown>> {
-  const response = await fetch(`${config.ollamaBaseUrl}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: config.ollamaModel,
-      prompt,
-      stream: false,
-      format: "json",
-      options: { temperature: 0.1 },
-    }),
-  });
+async function generateText(prompt: string): Promise<string> {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": config.geminiApiKey,
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: "application/json",
+        },
+      }),
+    }
+  );
   if (!response.ok) {
-    throw new Error(`Ollama HTTP ${response.status}: ${(await response.text()).slice(0, 200)}`);
+    throw new Error(`Gemini API HTTP ${response.status}`);
   }
-  const data = (await response.json()) as { response?: string };
-  if (!data.response) throw new Error("Empty Ollama response");
-  return parseModelJson(data.response);
+  const data = (await response.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+  };
+  const text = data.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text || "")
+    .join("")
+    .trim();
+  if (!text) throw new Error("Gemini returned an empty response");
+  return text;
+}
+
+async function generateJson(prompt: string): Promise<Record<string, unknown>> {
+  return parseModelJson(await generateText(prompt));
 }
 
 export async function extractPastedJob(
@@ -221,29 +237,8 @@ export async function scoreJob(
   const prompt = buildPrompt(resume, job, details);
 
   try {
-    const res = await fetch(`${config.ollamaBaseUrl}/api/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: config.ollamaModel,
-        prompt,
-        stream: false,
-        format: "json",
-        options: { temperature: 0.1 },
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`Ollama HTTP ${res.status}: ${body.slice(0, 200)}`);
-    }
-
-    const data = (await res.json()) as { response?: string };
-    if (!data.response) {
-      throw new Error("Empty Ollama response");
-    }
-
-    return parseMatchJson(data.response);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    return parseMatchJson(await generateText(prompt));
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return {
