@@ -1,4 +1,5 @@
 import { Queue } from "bullmq";
+import { randomUUID } from "node:crypto";
 import { Redis } from "ioredis";
 import { config } from "../../config/index.js";
 import PastedJob from "./pasted-jobs.model.js";
@@ -44,6 +45,22 @@ export async function startPastedJobsQueue(): Promise<void> {
 
 export async function enqueuePastedJob(pastedJobId: string): Promise<string> {
   return addPastedJobTask(pastedJobId);
+}
+
+export async function enqueuePastedJobRetry(pastedJobId: string): Promise<string> {
+  if (!queue) throw new Error("Pasted-jobs queue has not been started");
+  const task = await queue.add(
+    "process",
+    { pastedJobId },
+    {
+      jobId: `${pastedJobId}-retry-${randomUUID()}`,
+      attempts: 3,
+      backoff: { type: "exponential", delay: 5000 },
+      removeOnComplete: 1000,
+      removeOnFail: 1000,
+    }
+  );
+  return task.id ?? pastedJobId;
 }
 
 export async function recoverQueuedPastedJobs(): Promise<void> {

@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   createPastedJob,
   listPastedJobs,
+  retryPastedJob,
   updatePastedJob,
   updatePastedJobEmail,
 } from "./pasted-jobs.controller.js";
@@ -10,6 +11,7 @@ const router = Router();
 
 router.get("/", listPastedJobs);
 router.post("/", createPastedJob);
+router.post("/:id/retry", retryPastedJob);
 router.patch("/:id", updatePastedJob);
 router.patch("/:id/email", updatePastedJobEmail);
 

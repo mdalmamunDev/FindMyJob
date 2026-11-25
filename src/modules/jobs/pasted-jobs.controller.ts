@@ -1,7 +1,14 @@
 import type { RequestHandler } from "express";
 import catchAsync from "../../shared/catchAsync.js";
-import { enqueuePastedJob } from "./pasted-jobs.queue.js";
+import {
+  enqueuePastedJob,
+  enqueuePastedJobRetry,
+} from "./pasted-jobs.queue.js";
 import * as PastedJobsService from "./pasted-jobs.service.js";
+import {
+  PastedJobListQueryError,
+  PastedJobRetryError,
+} from "./pasted-jobs.service.js";
 import { broadcast } from "../../shared/websocket.js";
 import type { TPastedJob } from "./pasted-jobs.interface.js";
 
@@ -98,12 +105,62 @@ export const updatePastedJob: RequestHandler = catchAsync(async (req, res) => {
   res.json(job);
 });
 
+export const retryPastedJob: RequestHandler = catchAsync(async (req, res) => {
+  const id = req.params.id;
+  if (typeof id !== "string") {
+    res.status(400).json({ error: "Invalid pasted job ID" });
+    return;
+  }
+
+  let job: TPastedJob;
+  try {
+    job = await PastedJobsService.queueFailedPastedJobRetry(id);
+  } catch (error) {
+    if (error instanceof PastedJobRetryError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
+
+  try {
+    const queueJobId = await enqueuePastedJobRetry(id);
+    res.status(202).json({
+      id: job._id,
+      queueJobId,
+      status: job.status,
+      message: "Unfinished pasted-job processing has been queued",
+    });
+  } catch (error) {
+    await PastedJobsService.updatePastedJobStatus(id, {
+      status: "failed",
+      stage: "queue unavailable",
+      error: "Could not add job to Redis queue",
+    });
+    console.error(
+      "[pasted jobs] Unable to enqueue retry:",
+      error instanceof Error ? error.message : String(error)
+    );
+    res.status(503).json({
+      error: "Could not resume pasted job. Confirm Redis is available and try again.",
+    });
+  }
+});
+
 export const listPastedJobs: RequestHandler = catchAsync(async (req, res) => {
-  res.json(
-    await PastedJobsService.listPastedJobs(
-      req.query as Record<string, unknown>
-    )
-  );
+  try {
+    res.json(
+      await PastedJobsService.listPastedJobs(
+        req.query as Record<string, unknown>
+      )
+    );
+  } catch (error) {
+    if (error instanceof PastedJobListQueryError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 });
 
 export const updatePastedJobEmail: RequestHandler = catchAsync(

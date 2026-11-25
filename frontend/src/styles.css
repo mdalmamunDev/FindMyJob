@@ -176,6 +176,12 @@ button.secondary {
   box-shadow: var(--shadow);
 }
 
+.pasted-filters {
+  margin-top: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
 .paste-job-form h2,
 .pasted-job-card h2 {
   margin: 0;

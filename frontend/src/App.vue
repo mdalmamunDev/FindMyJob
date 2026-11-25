@@ -91,12 +91,111 @@
         </div>
       </form>
 
+      <form
+        class="filters pasted-filters"
+        aria-label="Pasted job filters"
+        @submit.prevent="applyPastedFilters"
+      >
+        <label>
+          Min match %
+          <input v-model.number="pastedFilters.min_match" type="number" min="0" max="100" />
+        </label>
+        <label>
+          Max match %
+          <input v-model.number="pastedFilters.max_match" type="number" min="0" max="100" />
+        </label>
+        <label>
+          Added within (days)
+          <input
+            v-model.number="pastedFilters.added_within"
+            type="number"
+            min="1"
+            step="1"
+            placeholder="Any"
+          />
+        </label>
+        <label>
+          Search
+          <input v-model="pastedFilters.q" type="search" placeholder="Title, company, or text" />
+        </label>
+        <label>
+          Location
+          <input v-model="pastedFilters.location" type="text" placeholder="Dhaka" />
+        </label>
+        <label>
+          Job type
+          <input v-model="pastedFilters.job_type" type="text" placeholder="Full-time" />
+        </label>
+        <label>
+          Processing status
+          <select v-model="pastedFilters.status">
+            <option value="">Any status</option>
+            <option value="queued">Queued</option>
+            <option value="processing">Processing</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+          </select>
+        </label>
+        <label>
+          Applied
+          <select v-model="pastedFilters.is_applied">
+            <option value="">Any</option>
+            <option value="true">Applied</option>
+            <option value="false">Not applied</option>
+          </select>
+        </label>
+        <label>
+          Shortlisted
+          <select v-model="pastedFilters.is_sort_listed">
+            <option value="">Any</option>
+            <option value="true">Shortlisted</option>
+            <option value="false">Not shortlisted</option>
+          </select>
+        </label>
+        <label>
+          Removed
+          <select v-model="pastedFilters.is_removed">
+            <option value="false">Not removed</option>
+            <option value="true">Removed</option>
+            <option value="all">All</option>
+          </select>
+        </label>
+        <button type="submit">Apply filters</button>
+      </form>
+
       <p class="pasted-list-meta">
         {{ pastedJobs.length }} of {{ pastedJobCount }} pasted jobs
         <button type="button" class="secondary" @click="refreshPastedJobs">
           Refresh
         </button>
       </p>
+      <div class="list-controls pasted-list-controls">
+        <label>
+          Sort by
+          <select v-model="pastedSort" @change="applyPastedFilters">
+            <option value="match_percent">Match percent</option>
+            <option value="createdAt">Date added</option>
+            <option value="updatedAt">Last updated</option>
+            <option value="publishDate">Publishing date</option>
+          </select>
+        </label>
+        <label>
+          Order
+          <select v-model="pastedSortDirection" @change="applyPastedFilters">
+            <option value="desc">Newest / highest</option>
+            <option value="asc">Oldest / lowest</option>
+          </select>
+        </label>
+        <label>
+          Per page
+          <select v-model.number="pastedPageSize" @change="applyPastedFilters">
+            <option :value="10">10</option>
+            <option :value="20">20</option>
+            <option :value="50">50</option>
+            <option :value="100">100</option>
+          </select>
+        </label>
+      </div>
       <main class="pasted-job-list">
         <p v-if="pastedLoading && !pastedJobs.length" class="empty">Loading pasted jobs…</p>
         <p v-else-if="!pastedJobs.length" class="empty">
@@ -135,6 +234,15 @@
           <p v-if="job.error" class="pasted-error" role="alert">
             Processing error: {{ job.error }}
           </p>
+          <button
+            v-if="job.status === 'failed' && (!job.emailDraft?.subject || !job.emailDraft?.content)"
+            type="button"
+            :disabled="job.retrying"
+            @click="resumePastedJob(job)"
+          >
+            {{ job.retrying ? "Resuming…" : "Finish unfinished steps" }}
+          </button>
+          <span v-if="job.retryReport" role="status">{{ job.retryReport }}</span>
           <p v-if="job.match_reason" class="pasted-match-reason">
             <b>Resume match:</b> {{ job.match_reason }}
           </p>
@@ -574,9 +682,35 @@ export default {
       pastedJobCount: 0,
       pastedPage: 1,
       pastedPageCount: 0,
+      pastedPageSize: 20,
+      pastedSort: "createdAt",
+      pastedSortDirection: "desc",
+      pastedFilters: {
+        min_match: "",
+        max_match: "",
+        added_within: "",
+        q: "",
+        location: "",
+        job_type: "",
+        status: "",
+        is_applied: "",
+        is_sort_listed: "",
+        is_removed: "false",
+      },
+      appliedPastedFilters: {
+        min_match: "",
+        max_match: "",
+        added_within: "",
+        q: "",
+        location: "",
+        job_type: "",
+        status: "",
+        is_applied: "",
+        is_sort_listed: "",
+        is_removed: "false",
+      },
       pastedLoading: false,
       pastedRequestId: 0,
-      pastedRefreshInProgress: false,
       theme: localStorage.getItem("findmyjob-theme") === "dark" ? "dark" : "light",
       categoryId: "8",
       postedWithin: 2,
@@ -667,6 +801,11 @@ export default {
     },
   },
   mounted() {
+    this.activeView =
+      new URLSearchParams(window.location.search).get("view") === "pasted"
+        ? "pasted"
+        : "bdjobs";
+    window.addEventListener("popstate", this.handleLocationChange);
     document.documentElement.dataset.theme = this.theme;
     this.baseDocumentTitle = document.title;
     document.title = this.pageTitle;
@@ -696,11 +835,32 @@ export default {
       this.socket.close();
       this.socket = null;
     }
+    window.removeEventListener("popstate", this.handleLocationChange);
   },
   methods: {
     stripHtml,
 
     setActiveView(view) {
+      if (view !== "bdjobs" && view !== "pasted") return;
+      const url = new URL(window.location.href);
+      if (view === "pasted") {
+        url.searchParams.set("view", "pasted");
+      } else {
+        url.searchParams.delete("view");
+      }
+      if (url.href !== window.location.href) {
+        window.history.pushState({ view }, "", url);
+      }
+      this.activeView = view;
+      if (view === "pasted") this.refreshPastedJobs();
+    },
+
+    handleLocationChange() {
+      const view =
+        new URLSearchParams(window.location.search).get("view") === "pasted"
+          ? "pasted"
+          : "bdjobs";
+      if (this.activeView === view) return;
       this.activeView = view;
       if (view === "pasted") this.refreshPastedJobs();
     },
@@ -901,36 +1061,46 @@ export default {
     },
 
     async refreshPastedJobs() {
-      if (this.pastedRefreshInProgress) return;
-      this.pastedRefreshInProgress = true;
       const requestId = ++this.pastedRequestId;
       try {
+        const params = this.pastedListParams(1);
         const response = await fetch(
-          `${apiBaseUrl}/api/pasted-jobs?page=1&page_size=50`
+          `${apiBaseUrl}/api/pasted-jobs?${params}`
         );
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not load pasted jobs");
         if (requestId !== this.pastedRequestId) return;
 
-        const previousJobs = new Map(
-          this.pastedJobs.map((job) => [String(job._id), job])
-        );
-        const latestJobs = (data.jobs || []).map((job) => ({
-          ...previousJobs.get(String(job._id)),
-          ...job,
-        }));
-        const latestIds = new Set(latestJobs.map((job) => String(job._id)));
-        this.pastedJobs = latestJobs.concat(
-          this.pastedJobs.filter((job) => !latestIds.has(String(job._id)))
-        );
+        this.pastedJobs = data.jobs || [];
         this.pastedJobCount = data.count;
         this.pastedPage = data.page;
         this.pastedPageCount = data.pageCount;
       } catch (error) {
-        this.pastedReport = error.message;
-      } finally {
-        this.pastedRefreshInProgress = false;
+        if (requestId === this.pastedRequestId) {
+          this.pastedReport = error.message;
+        }
       }
+    },
+
+    pastedListParams(page) {
+      const params = new URLSearchParams();
+      Object.entries(this.appliedPastedFilters).forEach(([key, value]) => {
+        if (value !== "" && value !== null && value !== undefined) {
+          params.set(key, String(value));
+        }
+      });
+      params.set("page", String(page));
+      params.set("page_size", String(this.pastedPageSize));
+      params.set("sort", this.pastedSort);
+      params.set("sort_direction", this.pastedSortDirection);
+      return params;
+    },
+
+    applyPastedFilters() {
+      this.appliedPastedFilters = { ...this.pastedFilters };
+      this.pastedJobs = [];
+      this.pastedPage = 1;
+      this.refreshPastedJobs();
     },
 
     async loadMorePastedJobs() {
@@ -938,11 +1108,13 @@ export default {
       this.pastedLoading = true;
       try {
         const page = this.pastedPage + 1;
+        const requestId = this.pastedRequestId;
         const response = await fetch(
-          `${apiBaseUrl}/api/pasted-jobs?page=${page}&page_size=50`
+          `${apiBaseUrl}/api/pasted-jobs?${this.pastedListParams(page)}`
         );
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not load more pasted jobs");
+        if (requestId !== this.pastedRequestId) return;
         const existingIds = new Set(this.pastedJobs.map((job) => String(job._id)));
         this.pastedJobs = this.pastedJobs.concat(
           (data.jobs || []).filter((job) => !existingIds.has(String(job._id)))
@@ -979,6 +1151,27 @@ export default {
       }
     },
 
+    async resumePastedJob(job) {
+      this.$set(job, "retrying", true);
+      this.$set(job, "retryReport", "");
+      try {
+        const response = await fetch(
+          `${apiBaseUrl}/api/pasted-jobs/${encodeURIComponent(job._id)}/retry`,
+          { method: "POST" }
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not resume pasted job");
+        this.$set(job, "status", "queued");
+        this.$set(job, "stage", "resuming unfinished steps");
+        this.$set(job, "error", "");
+        this.$set(job, "retryReport", "Queued to finish processing");
+      } catch (error) {
+        this.$set(job, "retryReport", error.message);
+      } finally {
+        this.$set(job, "retrying", false);
+      }
+    },
+
     async updatePastedJobField(job, field, updatedValue) {
       try {
         const response = await fetch(
@@ -992,6 +1185,7 @@ export default {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Could not update pasted job");
         this.$set(job, field, updatedValue);
+        await this.refreshPastedJobs();
       } catch (error) {
         this.pastedReport = error.message;
       }
