@@ -1,6 +1,10 @@
 import fs from "node:fs/promises";
-import { config } from "./config.js";
-import type { BdjobsJob, BdjobsJobDetails, MatchResult } from "./types.js";
+import { config } from "../../config/index.js";
+import type {
+  BdjobsJob,
+  BdjobsJobDetails,
+  MatchResult,
+} from "./jobs.interface.js";
 
 let resumeCache: string | null = null;
 

@@ -1,6 +1,6 @@
 import type { Server as HttpServer } from "node:http";
 import { WebSocketServer, type WebSocket } from "ws";
-import type { SyncProgressEvent } from "./types.js";
+import type { SyncProgressEvent } from "../modules/sync/sync.interface.js";
 
 let wss: WebSocketServer | null = null;
 

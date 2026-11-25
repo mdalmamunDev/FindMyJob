@@ -1,6 +1,6 @@
 # FindMyJob
 
-FindMyJob is a personal job-discovery and matching app for BDJobs. It syncs job listings from BDJobs, fetches available job details, and uses a local Ollama model to compare each new listing with your resume. Jobs are saved in MongoDB so you can review, filter, shortlist, and track them from a web interface.
+FindMyJob is a personal job-discovery and matching app for BDJobs. It syncs job listings from BDJobs, fetches available job details, and uses a local Ollama model to compare each new listing with your resume. Jobs are saved in MongoDB through Mongoose so you can review, filter, shortlist, and track them from a web interface.
 
 ## Previews
 
@@ -91,6 +91,18 @@ FindMyJob is a personal job-discovery and matching app for BDJobs. It syncs job 
 
 The backend reads `.env` from the project root. `.env` is ignored by Git; use `.env.example` as a starting point.
 Automatic sync does not run immediately on startup. It runs on the configured cron schedule using the category and day range from `.env`; a scheduled run is skipped if a manual or other sync is already in progress.
+
+## Backend structure
+
+The backend is organized by feature module:
+
+- `src/app.ts` configures Express middleware and mounts API routes.
+- `src/server.ts` connects to MongoDB, starts HTTP/WebSocket services and the scheduled sync, and handles shutdown.
+- `src/config/` contains environment configuration and the Mongoose database lifecycle.
+- `src/modules/jobs/` contains job routes, controllers, service logic, model, BDJobs API client, matcher, and interfaces.
+- `src/modules/sync/` contains sync routes, controllers, orchestration, scheduler, state model, and interfaces.
+- `src/routes/index.ts` mounts feature routes under `/api`.
+- `src/shared/` contains cross-feature infrastructure such as WebSocket broadcasting.
 
 ## Run locally
 

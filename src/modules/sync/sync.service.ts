@@ -2,19 +2,38 @@ import {
   fetchBdjobsJobDetails,
   fetchBdjobsPage,
   mergeBdjobsJobDetails,
-} from "./bdjobs.js";
-import { config } from "./config.js";
-import { jobsCollection, recordSyncCompleted } from "./db.js";
-import { loadResume, scoreJob } from "./matcher.js";
+} from "../jobs/bdjobs.service.js";
+import { config } from "../../config/index.js";
+import Job from "../jobs/jobs.model.js";
+import { loadResume, scoreJob } from "../jobs/matcher.service.js";
 import type {
   BdjobsJob,
   BdjobsJobDetails,
   JobDocument,
   JobSource,
+} from "../jobs/jobs.interface.js";
+import type {
   SyncOptions,
   SyncProgressCallback,
   SyncReport,
-} from "./types.js";
+} from "./sync.interface.js";
+import SyncStateModel from "./sync.model.js";
+
+export async function getLastSyncAt(): Promise<Date | null> {
+  const state = await SyncStateModel.findById("bdjobs_sync")
+    .select("lastSyncAt")
+    .lean()
+    .exec();
+  return state?.lastSyncAt ?? null;
+}
+
+async function recordSyncCompleted(at: Date): Promise<void> {
+  await SyncStateModel.updateOne(
+    { _id: "bdjobs_sync" },
+    { $set: { lastSyncAt: at } },
+    { upsert: true }
+  ).exec();
+}
 
 let syncRunning = false;
 
@@ -34,12 +53,14 @@ async function processJob(
     match?: { match_percent: number; reason: string }
   ) => void
 ): Promise<"new" | "skipped"> {
-  const jobs = jobsCollection();
-  const existing = await jobs.findOne({ Jobid: job.Jobid }, { projection: { Jobid: 1 } });
+  const existing = await Job.findOne({ Jobid: job.Jobid })
+    .select("Jobid")
+    .lean()
+    .exec();
 
   if (existing) {
     onDetails?.("already_saved");
-    await jobs.updateOne(
+    await Job.updateOne(
       { Jobid: job.Jobid },
       {
         $set: {
@@ -47,7 +68,7 @@ async function processJob(
           synced_at: new Date(),
         },
       }
-    );
+    ).exec();
     report.skipped += 1;
     return "skipped";
   }
@@ -98,7 +119,7 @@ async function processJob(
       : {}),
   };
 
-  await jobs.insertOne(doc);
+  await Job.create(doc);
   report.newly_added += 1;
   return "new";
 }

@@ -1,7 +1,7 @@
 import { Cron } from "croner";
-import { config } from "./config.js";
-import { startSyncBackground } from "./sync.js";
-import { broadcast } from "./ws.js";
+import { config } from "../../config/index.js";
+import { broadcast } from "../../shared/websocket.js";
+import { startSyncBackground } from "./sync.service.js";
 
 export function startAutoSync(): Cron | undefined {
   if (config.autoSyncHour === undefined) {

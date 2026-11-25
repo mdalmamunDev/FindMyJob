@@ -1,5 +1,5 @@
-import { config } from "./config.js";
-import type { BdjobsJob, BdjobsJobDetails } from "./types.js";
+import { config } from "../../config/index.js";
+import type { BdjobsJob, BdjobsJobDetails } from "./jobs.interface.js";
 
 export interface BdjobsPage {
   premium: BdjobsJob[];
@@ -65,11 +65,10 @@ export async function fetchBdjobsPage(
 
   const premium = (json.premiumData ?? [])
     .map(normalizeJob)
-    .filter((j): j is BdjobsJob => j !== null);
-
+    .filter((job): job is BdjobsJob => job !== null);
   const normal = (json.data ?? [])
     .map(normalizeJob)
-    .filter((j): j is BdjobsJob => j !== null);
+    .filter((job): job is BdjobsJob => job !== null);
 
   const totalPagesRaw = json.common?.totalpages;
   const totalPages =
@@ -118,7 +117,6 @@ export async function fetchBdjobsJobDetails(
   if (!details || typeof details !== "object") {
     throw new Error(`BDJobs returned no details for job ${jobId}`);
   }
-
   return details;
 }
 
