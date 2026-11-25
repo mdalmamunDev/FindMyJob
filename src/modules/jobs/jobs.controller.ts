@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 import catchAsync from "../../shared/catchAsync.js";
 import * as JobsService from "./jobs.service.js";
-import type { JobDocument } from "./jobs.interface.js";
+import type { TJob } from "./jobs.interface.js";
 
 export const listJobs: RequestHandler = catchAsync(async (req, res) => {
   const result = await JobsService.listJobs(
@@ -35,7 +35,7 @@ export const getJobById: RequestHandler = catchAsync(async (req, res) => {
 
 export const updateJob: RequestHandler = catchAsync(async (req, res) => {
   const updates: Partial<
-    Pick<JobDocument, "isApplied" | "isRemoved" | "isSortListed">
+    Pick<TJob, "isApplied" | "isRemoved" | "isSortListed">
   > = {};
   for (const field of ["isApplied", "isRemoved", "isSortListed"] as const) {
     if (req.body?.[field] !== undefined) {

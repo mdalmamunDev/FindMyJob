@@ -1,6 +1,6 @@
 import type { FilterQuery } from "mongoose";
 import Job from "./jobs.model.js";
-import type { JobDocument } from "./jobs.interface.js";
+import type { TJob } from "./jobs.interface.js";
 
 const sortFields = [
   "match_percent",
@@ -15,7 +15,7 @@ export interface JobListResult {
   page: number;
   pageSize: number;
   pageCount: number;
-  jobs: JobDocument[];
+  jobs: TJob[];
 }
 
 function parseBool(value: unknown): boolean | undefined {
@@ -25,8 +25,8 @@ function parseBool(value: unknown): boolean | undefined {
   return undefined;
 }
 
-function buildFilter(input: Record<string, unknown>): FilterQuery<JobDocument> {
-  const filter: FilterQuery<JobDocument> = {};
+function buildFilter(input: Record<string, unknown>): FilterQuery<TJob> {
+  const filter: FilterQuery<TJob> = {};
 
   if (input.is_removed !== "all") {
     filter.isRemoved =
@@ -146,16 +146,16 @@ export async function bulkRemoveJobs(
   };
 }
 
-export async function getJobById(jobId: string): Promise<JobDocument | null> {
+export async function getJobById(jobId: string): Promise<TJob | null> {
   return Job.findOne({ Jobid: jobId }).lean().exec();
 }
 
 export async function updateJob(
   jobId: string,
   updates: Partial<
-    Pick<JobDocument, "isApplied" | "isRemoved" | "isSortListed">
+    Pick<TJob, "isApplied" | "isRemoved" | "isSortListed">
   >
-): Promise<JobDocument | null> {
+): Promise<TJob | null> {
   return Job.findOneAndUpdate(
     { Jobid: jobId },
     { $set: updates },

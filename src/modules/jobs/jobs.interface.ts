@@ -1,3 +1,5 @@
+import type { Model, Types } from "mongoose";
+
 export type JobSource = "premium" | "normal";
 
 /** Raw BDJobs job object from the listing API. */
@@ -71,7 +73,8 @@ export interface BdjobsJobDetails {
   [key: string]: unknown;
 }
 
-export interface JobDocument extends BdjobsJob {
+export type TJob = BdjobsJob & {
+  _id: Types.ObjectId;
   source: JobSource;
   isApplied: boolean;
   isRemoved: boolean;
@@ -84,7 +87,9 @@ export interface JobDocument extends BdjobsJob {
   raw: BdjobsJob;
   details?: BdjobsJobDetails;
   rawDetails?: BdjobsJobDetails;
-}
+};
+
+export type JobModel = Model<TJob>;
 
 export interface MatchResult {
   match_percent: number;

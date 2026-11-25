@@ -9,8 +9,8 @@ import { loadResume, scoreJob } from "../jobs/matcher.service.js";
 import type {
   BdjobsJob,
   BdjobsJobDetails,
-  JobDocument,
   JobSource,
+  TJob,
 } from "../jobs/jobs.interface.js";
 import type {
   SyncOptions,
@@ -89,7 +89,7 @@ async function processJob(
   onDetails?.("scored", rawDetails, detailsError, match);
   const now = new Date();
 
-  const doc: JobDocument = {
+  const doc: Omit<TJob, "_id"> = {
     ...scoredJob,
     source,
     isApplied: false,
