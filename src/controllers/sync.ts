@@ -3,6 +3,19 @@ import { getLastSyncAt } from "../db.js";
 import { startSyncBackground } from "../sync.js";
 import { broadcast } from "../ws.js";
 
+export const createSyncToken: RequestHandler = (_req, res) => {
+  try {
+    console.log(_req);
+    console.log('Body:', _req.body);
+
+    res.status(200).json({ message: "Sync token successfully" });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("[sync token status]", message);
+    res.status(500).json({ error: message });
+  }
+};
+
 export const getSyncStatus: RequestHandler = async (_req, res) => {
   try {
     res.json({ lastSyncAt: await getLastSyncAt() });

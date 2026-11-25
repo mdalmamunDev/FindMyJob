@@ -125,7 +125,7 @@
       </div>
     </aside>
 
-    <section class="filters" aria-label="Filters">
+    <form class="filters" aria-label="Filters" @submit.prevent="applyFilters">
       <label>
         Min match %
         <input v-model.number="filters.min_match" type="number" min="0" max="100" />
@@ -209,8 +209,8 @@
           <option value="all">All</option>
         </select>
       </label>
-      <button type="button" @click="applyFilters">Apply filters</button>
-    </section>
+      <button type="submit">Apply filters</button>
+    </form>
 
     <section class="list-toolbar">
       <p class="list-meta">{{ listMeta }}</p>
@@ -404,7 +404,7 @@ export default {
       filters: {
         min_match: 0,
         max_match: "",
-        posted_within: "",
+        posted_within: 5,
         cat_id: "",
         q: "",
         location: "",
@@ -418,7 +418,7 @@ export default {
       appliedFilters: {
         min_match: 0,
         max_match: "",
-        posted_within: "",
+        posted_within: 5,
         cat_id: "",
         q: "",
         location: "",
