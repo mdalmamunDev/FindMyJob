@@ -18,6 +18,14 @@ function optionalInt(name: string, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
 
+function optionalBoolean(name: string, fallback: boolean): boolean {
+  const raw = process.env[name]?.trim().toLowerCase();
+  if (!raw) return fallback;
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  throw new Error(`${name} must be true or false`);
+}
+
 function optionalInteger(name: string): number | undefined {
   const raw = process.env[name]?.trim();
   if (!raw) return undefined;
@@ -54,6 +62,13 @@ export const config = {
   queueRedisUrl: (process.env.QUEUE_REDIS_URL || "redis://127.0.0.1:6379").trim(),
   geminiApiKey: required("GEMINI_API_KEY"),
   geminiModel: (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim(),
+  cvLink: (process.env.CV_LINK || "").trim(),
+  smtpHost: (process.env.SMTP_HOST || "").trim(),
+  smtpPort: optionalInt("SMTP_PORT", 587),
+  smtpSecure: optionalBoolean("SMTP_SECURE", false),
+  smtpUsername: (process.env.SMTP_USERNAME || "").trim(),
+  smtpPassword: process.env.SMTP_PASSWORD || "",
+  emailFrom: (process.env.EMAIL_FROM || "").trim(),
   resumePath: path.resolve(process.cwd(), "RESUME.md"),
   frontendOrigins: (process.env.FRONTEND_ORIGINS || "http://localhost:5173")
     .split(",")

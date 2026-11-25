@@ -16,6 +16,7 @@ import type {
   TPastedJob,
 } from "./pasted-jobs.interface.js";
 import { broadcast } from "../../shared/websocket.js";
+import { MailConfigurationError, sendMail } from "../../shared/mailer.js";
 
 export interface PastedJobListResult {
   count: number;
@@ -28,6 +29,15 @@ export interface PastedJobListResult {
 export class PastedJobListQueryError extends Error {}
 
 export class PastedJobRetryError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode: number
+  ) {
+    super(message);
+  }
+}
+
+export class PastedJobEmailSendError extends Error {
   constructor(
     message: string,
     public readonly statusCode: number
@@ -414,6 +424,49 @@ export async function updatePastedJobEmail(
       }
       return job;
     });
+}
+
+export async function sendPastedJobEmail(
+  id: string,
+  draft: PastedJobEmailDraft
+): Promise<void> {
+  const job = await PastedJob.findOneAndUpdate(
+    { _id: id },
+    { $set: { emailDraft: draft } },
+    { new: true }
+  )
+    .lean()
+    .exec();
+
+  if (!job) throw new PastedJobEmailSendError("Pasted job not found", 404);
+  broadcast({
+    type: "pasted_job_updated",
+    id,
+    emailDraftUpdated: true,
+  });
+
+  try {
+    await sendMail({
+      to: draft.to,
+      subject: draft.subject,
+      text: draft.content,
+    });
+  } catch (error) {
+    const message =
+      error instanceof MailConfigurationError
+        ? error.message
+        : "Email delivery failed. Check the SMTP configuration; if this was a timeout, verify delivery before sending again.";
+    if (!(error instanceof MailConfigurationError)) {
+      console.error(
+        "[pasted email] Delivery failed:",
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+    throw new PastedJobEmailSendError(
+      message,
+      error instanceof MailConfigurationError ? 503 : 502
+    );
+  }
 }
 
 export async function updatePastedJob(

@@ -7,6 +7,7 @@ import {
 import * as PastedJobsService from "./pasted-jobs.service.js";
 import {
   PastedJobListQueryError,
+  PastedJobEmailSendError,
   PastedJobRetryError,
 } from "./pasted-jobs.service.js";
 import { broadcast } from "../../shared/websocket.js";
@@ -194,5 +195,50 @@ export const updatePastedJobEmail: RequestHandler = catchAsync(
       return;
     }
     res.json(job);
+  }
+);
+
+export const sendPastedJobEmail: RequestHandler = catchAsync(
+  async (req, res) => {
+    const { to, subject, content } = req.body ?? {};
+    if (
+      typeof to !== "string" ||
+      typeof subject !== "string" ||
+      typeof content !== "string" ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to.trim()) ||
+      !subject.trim() ||
+      /[\r\n]/.test(subject) ||
+      !content.trim()
+    ) {
+      res.status(400).json({
+        error: "Provide a valid recipient, a single-line subject, and non-empty email content",
+      });
+      return;
+    }
+    if (content.length > 100_000) {
+      res.status(413).json({ error: "Email content must be 100,000 characters or less" });
+      return;
+    }
+
+    const id = req.params.id;
+    if (typeof id !== "string") {
+      res.status(400).json({ error: "Invalid pasted job ID" });
+      return;
+    }
+
+    try {
+      await PastedJobsService.sendPastedJobEmail(id, {
+        to: to.trim(),
+        subject: subject.trim(),
+        content: content.trim(),
+      });
+      res.json({ message: "Email sent successfully" });
+    } catch (error) {
+      if (error instanceof PastedJobEmailSendError) {
+        res.status(error.statusCode).json({ error: error.message });
+        return;
+      }
+      throw error;
+    }
   }
 );

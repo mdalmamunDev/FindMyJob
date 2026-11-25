@@ -326,6 +326,10 @@ button.secondary {
   color: var(--muted);
 }
 
+.pasted-email-success {
+  color: var(--green);
+}
+
 .pasted-email form {
   display: grid;
   gap: 0.6rem;
@@ -349,6 +353,10 @@ button.secondary {
 
 .pasted-email-actions span {
   color: var(--muted);
+}
+
+.pasted-email-actions span.pasted-email-success {
+  color: var(--green);
 }
 
 .pasted-source summary {
@@ -699,6 +707,39 @@ button.secondary {
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: 0 6px 18px rgba(16, 24, 40, 0.12);
+}
+
+.app-toast {
+  position: fixed;
+  z-index: 20;
+  right: 1rem;
+  top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: min(28rem, calc(100vw - 2rem));
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.app-toast-success {
+  border-left: 4px solid var(--green);
+}
+
+.app-toast-error {
+  border-left: 4px solid #b3261e;
+}
+
+.app-toast button {
+  padding: 0 0.25rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.15rem;
 }
 
 .sync-progress-toast.done {

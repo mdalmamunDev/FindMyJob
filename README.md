@@ -16,7 +16,7 @@ FindMyJob is a personal job-discovery and matching app for BDJobs and pasted lis
 
 - **BDJobs sync:** Sync listings by category and posted-within days. The category and day range are selected in the interface.
 - **Pasted jobs:** Paste a listing in its own frontend view. BullMQ queues extraction, resume matching, and application-email drafting so the form returns immediately while processing continues in the background.
-- **Editable email drafts:** Pasted job cards display the extracted listing details and an editable `To`, `Subject`, and `Content` form. Drafts can be saved or copied and are never sent automatically.
+- **Editable email drafts:** Pasted job cards display the extracted listing details and an editable `To`, `Subject`, and `Content` form. Drafts can be saved or copied; sending requires clicking the explicit Send email button.
 - **Resume-based matching:** Scores new jobs against your resume using Google Gemini. Match scores and a short explanation are saved with each job.
 - **Detailed job data:** Fetches available job details, including skills and requirements, to enrich matching and job previews. Listing data is still used if details cannot be fetched.
 - **Live sync progress:** Shows the current job and sync counts in the app, and the browser tab title displays progress while syncing.
@@ -78,6 +78,13 @@ FindMyJob is a personal job-discovery and matching app for BDJobs and pasted lis
 | `QUEUE_REDIS_URL` | No | `redis://127.0.0.1:6379` | Redis connection used by the BullMQ pasted-job queue. Redis must be reachable before the API starts. |
 | `GEMINI_API_KEY` | Yes | — | Google Gemini API key. Keep it private and backend-only. |
 | `GEMINI_MODEL` | No | `gemini-2.5-flash` | Gemini model used for extraction, matching, and email drafts. |
+| `CV_LINK` | No | Empty | Link to include in generated pasted-job application email drafts. |
+| `SMTP_HOST` | Required to send | — | SMTP server hostname. |
+| `SMTP_PORT` | No | `587` | SMTP server port. |
+| `SMTP_SECURE` | No | `false` | Set to `true` for implicit TLS (commonly port 465). |
+| `SMTP_USERNAME` | No | — | SMTP authentication username; set together with `SMTP_PASSWORD`. |
+| `SMTP_PASSWORD` | No | — | SMTP authentication password; set together with `SMTP_USERNAME`. |
+| `EMAIL_FROM` | Required to send | — | Sender address/name configured for the SMTP account. |
 | `PORT` | No | `3000` | API server port. |
 | `RPP` | No | `50` | Number of BDJobs results requested per page. |
 | `MAX_PAGES` | No | `50` | Maximum number of BDJobs pages to process per sync. |
@@ -89,6 +96,7 @@ FindMyJob is a personal job-discovery and matching app for BDJobs and pasted lis
 
 The backend reads `.env` from the project root. `.env` is ignored by Git; use `.env.example` as a starting point. Start Redis before the API; pasted-job processing is handled by a BullMQ worker in the API process.
 Automatic sync does not run immediately on startup. It runs on the configured cron schedule using the category and day range from `.env`; a scheduled run is skipped if a manual or other sync is already in progress.
+SMTP sending has a 45-second hard timeout. A timeout may leave delivery uncertain; verify with the sender's mail provider before sending again.
 
 ## Backend structure
 
@@ -143,6 +151,7 @@ npm run build:web
 - `POST /api/pasted-jobs` — save and enqueue a pasted job. JSON body: `{ "text": "...", "sourceUrl": "https://..." }`; `sourceUrl` is optional and must be HTTP(S). Text must be 20–30,000 characters. Returns `202` immediately with a queue ID.
 - `GET /api/pasted-jobs` — filter and paginate pasted jobs. Supports `min_match`, `max_match`, `added_within` (days since the job was pasted), `q`, `location`, `job_type`, `status`, `is_applied`, `is_sort_listed`, and `is_removed`, plus `page`, `page_size`, `sort` (`match_percent`, `createdAt`, `updatedAt`, or `publishDate`), and `sort_direction`.
 - `POST /api/pasted-jobs/:id/retry` — resume a failed pasted job from saved extraction and match results and complete its missing email draft.
+- `POST /api/pasted-jobs/:id/send-email` — send the submitted email draft through configured SMTP and return a success message.
 - `PATCH /api/pasted-jobs/:id/email` — save edits to the generated email draft (`to`, `subject`, and `content`); does not send the email.
 - `PATCH /api/pasted-jobs/:id` — update pasted-job tracking flags: `isApplied`, `isSortListed`, and/or `isRemoved`.
 - `ws://localhost:3000/ws` — broadcasts `pasted_job_updated` events when pasted-job stages, extraction, scoring, or email-draft status changes; reconnecting clients reload the current list.

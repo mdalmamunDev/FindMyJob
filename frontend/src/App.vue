@@ -1,5 +1,17 @@
 <template>
   <div>
+    <div
+      v-if="toastMessage"
+      class="app-toast"
+      :class="`app-toast-${toastType}`"
+      :role="toastType === 'error' ? 'alert' : 'status'"
+      aria-live="polite"
+    >
+      <span>{{ toastMessage }}</span>
+      <button type="button" aria-label="Dismiss notification" @click="clearToast">
+        ×
+      </button>
+    </div>
     <header class="topbar">
       <div class="brand">
         <h1>FindMyJob</h1>
@@ -276,7 +288,7 @@
             v-if="job.emailDraft && (job.status === 'completed' || job.status === 'failed')"
             class="pasted-email"
           >
-            <h3>Application email draft <span>(not sent)</span></h3>
+            <h3>Application email draft</h3>
             <form @submit.prevent="savePastedEmail(job)">
               <label>
                 To
@@ -297,7 +309,20 @@
                 <button type="button" class="secondary" @click="copyPastedEmail(job)">
                   Copy email
                 </button>
-                <span v-if="job.emailReport" role="status">{{ job.emailReport }}</span>
+                <button
+                  type="button"
+                  :disabled="job.emailSending"
+                  @click="sendPastedEmail(job)"
+                >
+                  {{ job.emailSending ? "Sending…" : "Send email" }}
+                </button>
+                <span
+                  v-if="job.emailReport"
+                  role="status"
+                  :class="{ 'pasted-email-success': job.emailReportSuccess }"
+                >
+                  {{ job.emailReport }}
+                </span>
               </div>
             </form>
           </section>
@@ -711,6 +736,9 @@ export default {
       },
       pastedLoading: false,
       pastedRequestId: 0,
+      toastMessage: "",
+      toastType: "success",
+      toastTimer: null,
       theme: localStorage.getItem("findmyjob-theme") === "dark" ? "dark" : "light",
       categoryId: "8",
       postedWithin: 2,
@@ -835,10 +863,27 @@ export default {
       this.socket.close();
       this.socket = null;
     }
+    if (this.toastTimer) clearTimeout(this.toastTimer);
     window.removeEventListener("popstate", this.handleLocationChange);
   },
   methods: {
     stripHtml,
+
+    showToast(message, type = "success") {
+      if (this.toastTimer) clearTimeout(this.toastTimer);
+      this.toastMessage = message;
+      this.toastType = type;
+      this.toastTimer = setTimeout(() => {
+        this.toastMessage = "";
+        this.toastTimer = null;
+      }, 4500);
+    },
+
+    clearToast() {
+      if (this.toastTimer) clearTimeout(this.toastTimer);
+      this.toastTimer = null;
+      this.toastMessage = "";
+    },
 
     setActiveView(view) {
       if (view !== "bdjobs" && view !== "pasted") return;
@@ -1148,6 +1193,29 @@ export default {
         this.$set(job, "emailReport", error.message);
       } finally {
         this.$set(job, "emailSaving", false);
+      }
+    },
+
+    async sendPastedEmail(job) {
+      this.$set(job, "emailSending", true);
+      this.$set(job, "emailReport", "");
+      this.$set(job, "emailReportSuccess", false);
+      try {
+        const response = await fetch(
+          `${apiBaseUrl}/api/pasted-jobs/${encodeURIComponent(job._id)}/send-email`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(job.emailDraft),
+          }
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Could not send email");
+        this.showToast(data.message || "Email sent successfully");
+      } catch (error) {
+        this.showToast(error.message || "Could not send email", "error");
+      } finally {
+        this.$set(job, "emailSending", false);
       }
     },
 
